@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: yolov8-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: nvidia.com/gpu.product
+            operator: In
+            values:
+            - NVIDIA-GeForce-RTX-3090
+  volumes:
+  - name: git-secret
+    secret:
+      secretName: yixiang-key
+      defaultMode: 256
+  - name: dshm
+    emptyDir:
+      medium: Memory
+      sizeLimit: "1G"
+  containers:
+  - name: gpu-container
+    image: gitlab-registry.nrp-nautilus.io/yg5d6/yolov8
+    command: ["/bin/sh", "-c"]
+    args:
+    - sleep infinity;
+    resources:
+      limits:
+        memory: "32G"
+        cpu: "8"
+        nvidia.com/gpu: "1"
+      requests:
+        memory: "32G"
+        cpu: "8"
+        nvidia.com/gpu: "1"
+    volumeMounts:
+    - name: git-secret
+      readOnly: true
+      mountPath: /etc/ssh-key
+    - name: dshm
+      mountPath: /dev/shm
