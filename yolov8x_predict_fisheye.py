@@ -5,13 +5,13 @@ from PIL import Image
 from ultralytics import YOLO
 
 data_dir = '../dataset/Fisheye8K_all_including_train/test/images/'
-sources = [data_dir+img for img in os.listdir(data_dir)[:5]]
+sources = [data_dir+img for img in os.listdir(data_dir)]
 print(f"Total data for inference {len(sources)}")
 
-run = wandb.init(project="yolov8-fisheye", name="yolov8x_predict")
+run = wandb.init(project="yolov8-fisheye", name="yolov8x_predict_test")
 
 model = YOLO('yolov8x.pt')
-results = model.predict(sources, save=False, imgsz=640, conf=0.5, stream=False)
+results = model.predict(sources, save=False, imgsz=640, conf=0.5, stream=True)
 names = model.names
 print(f"class names {model.names}")
 
