@@ -4,18 +4,18 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from ultralytics import YOLO
 
-data_dir = '../dataset/Fisheye8K_all_including_train/test/images/'
-sources = [data_dir+img for img in os.listdir(data_dir)]
-print(f"Total data for inference {len(sources)}")
+run = wandb.init(project="yolov8-fisheye", name="yolov8x_predict_test_1")
+table = wandb.Table(columns=["ID", "Image"])
 
-run = wandb.init(project="yolov8-fisheye", name="yolov8x_predict_test")
+data_dir = '../dataset/Fisheye8K_all_including_train/test/images/'
+sources = [data_dir+img for img in os.listdir(data_dir)[:128]]
+print(f"Total data for inference {len(sources)}")
 
 model = YOLO('yolov8x.pt')
 results = model.predict(sources, save=False, imgsz=640, conf=0.5, stream=True)
 names = model.names
 print(f"class names {model.names}")
 
-table = wandb.Table(columns=["ID", "Image"])
 for result in results:
   img_id = result.path.rsplit('/',1)[-1]
   print(img_id)
@@ -42,11 +42,7 @@ for result in results:
       }
     },
   )
-  print(f"# of boxes {len(result.boxes)}")
-  for box in result.boxes:
-    print(box.xyxyn.cpu().numpy())
-    print(box.xyxyn.cpu().numpy()[0])
-    print(box.cls.cpu().numpy())
+
   table.add_data(img_id, box_img)
   
 run.log({"Table" : table})
