@@ -20,13 +20,20 @@ spec:
   - name: dshm
     emptyDir:
       medium: Memory
-      sizeLimit: "1G"
   containers:
   - name: gpu-container
     image: gitlab-registry.nrp-nautilus.io/yg5d6/yolov8
     command: ["/bin/sh", "-c"]
     args:
-    - sleep infinity;
+    - cd /workspace/FishEye8k/;
+      mkdir dataset;
+      tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
+      mkdir /root/.ssh/;
+      cp /etc/ssh-key/ssh-privatekey /root/.ssh/id_ed25519;
+      wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
+      git config --global user.name  "Yixiang Gao";
+      git config --global user.email "yg5d6@umsystem.edu";
+      sleep infinity;
     resources:
       limits:
         memory: "32G"
