@@ -16,16 +16,8 @@ if __name__ == "__main__":
   print(f"Total data for inference {len(sources)}")
   
   model = YOLO('yolov8x.pt')
-  class_coco = {0: 'person',
-                2: 'car',
-                3: 'motorcycle',
-                5: 'bus',
-                7: 'truck'} 
-  class_fisheye = {0: 'bus',
-                   1: 'bike',
-                   2: 'car',
-                   3: 'pedestrian',
-                   4: 'truck'} 
+  class_coco = {0: 'person', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'} 
+  classid_fisheye = [5, 3, 2, 0, 7]
   
   #for i in range(len(sources)//128+1):
   for i in range(1):
@@ -43,8 +35,7 @@ if __name__ == "__main__":
       boxes_gt = []
       with open(label_dir + img_id.replace(".png", ".txt"), "r") as file:
         boxes_gt = file.readlines()
-      print(boxes_gt) 
-
+      
       if WANDB:
         # TODO: unifying the box format to make it easier to compute the benchmarks
         box_img = wandb.Image(
@@ -58,12 +49,12 @@ if __name__ == "__main__":
                       "width" : float(box.split()[3]),
                       "height": float(box.split()[4]),
                   },
-                  "class_id": int(box.split()[0]),
-                  "box_caption": class_fisheye[int(box.split()[0])],
+                  "class_id": int(classid_fisheye[int(box.split()[0])]),
+                  "box_caption": class_coco[int(classid_fisheye[int(box.split()[0])])],
                 }
                 for box in boxes_gt
               ],
-              "class_labels": class_fisheye,
+              "class_labels": class_coco,
             },
             "prediction": {
               "box_data": [
