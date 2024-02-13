@@ -21,9 +21,10 @@ if __name__ == "__main__":
   
   #for i in range(len(sources)//128+1):
   for i in range(1):
+    # starting and ending indices for each batch
     start = i*128
     end = (i+1)*128 if i<=20 else -1 
-    results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, conf=0.5, stream=True)
+    results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, conf=0.0, iou=0.7, stream=True)
     for result in results:
       img_id = result.path.rsplit('/',1)[-1]
       print(img_id)
@@ -65,8 +66,9 @@ if __name__ == "__main__":
                     "maxX": float(box.xyxyn.cpu().numpy()[0][2]),
                     "maxY": float(box.xyxyn.cpu().numpy()[0][3]),
                   },
-                  "class_id": int(box.cls.cpu().numpy()[0]),
+                  "class_id"   : int(box.cls.cpu().numpy()[0]),
                   "box_caption": class_coco[int(box.cls.cpu().numpy()[0])],
+                  "scores"     : {"score": float(box.conf.cpu().numpy()[0])}
                 }
                 for box in result.boxes
               ],
