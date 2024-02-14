@@ -65,7 +65,8 @@ if __name__ == "__main__":
         table.add_data(img_id, box_img)
 
     # compute benchmarks against the groundtruth
-    print(conf_mat.matrix)
+  print(conf_mat.matrix)
+  print(conf_mat.tp_fp()[0])
     
   if WANDB:
     run.log({"Table" : table})
