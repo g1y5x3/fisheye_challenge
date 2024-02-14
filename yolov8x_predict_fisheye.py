@@ -2,6 +2,8 @@ import io, os, cv2, wandb
 import matplotlib.pyplot as plt
 from PIL import Image
 from ultralytics import YOLO
+from ultralytics.utils.metrics import ConfusionMatrix
+from utils import bounding_boxes 
 
 WANDB = os.getenv("WANDB", False)
 
@@ -38,45 +40,10 @@ if __name__ == "__main__":
         boxes_gt = file.readlines()
       
       if WANDB:
-        # TODO: unifying the box format to make it easier to compute the benchmarks
-        box_img = wandb.Image(
-          result.orig_img,
-          boxes={
-            "groundtruth": {
-              "box_data": [
-                {
-                  "position": {
-                      "middle": [float(box.split()[1]), float(box.split()[2])],
-                      "width" : float(box.split()[3]),
-                      "height": float(box.split()[4]),
-                  },
-                  "class_id": int(classid_fisheye[int(box.split()[0])]),
-                  "box_caption": class_coco[int(classid_fisheye[int(box.split()[0])])],
-                }
-                for box in boxes_gt
-              ],
-              "class_labels": class_coco,
-            },
-            "prediction": {
-              "box_data": [
-                {
-                  "position": {
-                    "minX": float(box.xyxyn.cpu().numpy()[0][0]),
-                    "minY": float(box.xyxyn.cpu().numpy()[0][1]),
-                    "maxX": float(box.xyxyn.cpu().numpy()[0][2]),
-                    "maxY": float(box.xyxyn.cpu().numpy()[0][3]),
-                  },
-                  "class_id"   : int(box.cls.cpu().numpy()[0]),
-                  "box_caption": class_coco[int(box.cls.cpu().numpy()[0])],
-                  "scores"     : {"score": float(box.conf.cpu().numpy()[0])}
-                }
-                for box in result.boxes
-              ],
-              "class_labels": class_coco,
-            }
-          },
-        )
+        box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt, class_coco, classid_fisheye)
         table.add_data(img_id, box_img)
+
+    # compute benchmarks against the groundtruth
     
   if WANDB:
     run.log({"Table" : table})
