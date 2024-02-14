@@ -19,9 +19,12 @@ if __name__ == "__main__":
   sources = [data_dir+img for img in os.listdir(data_dir)]
   print(f"Total data for inference {len(sources)}")
 
-  # coco labels and fisheye label indices based on coco labels
-  class_coco = {0: 'person', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'} 
-  classid_fisheye = [5, 3, 2, 0, 7]
+  # For the convenience of confusion matrix, all labels are convered to 0 ~ 4, probably can write it in a cleaner way
+  class_name = {0: 'person', 1: 'car', 2: 'motorcycle', 3: 'bus', 4: 'truck'} 
+  # {0: 'person', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
+  classid_coco    = {0:0, 2:1, 3:2, 5:3, 7:4} 
+  # {0: 'bus', 1: 'motorcycle', 2: 'car', 3: 'person', 4: 'truck'}
+  classid_fisheye = {0:3, 1:2, 2:1, 3:0, 4:4} 
  
   model = YOLO('yolov8x.pt')
   conf_mat = ConfusionMatrix(5, conf=0.25, iou_thres=0.45, task="detect")
@@ -55,18 +58,16 @@ if __name__ == "__main__":
       # TODO: apparently when you set conf threhold to 0, the total amount of bounding boxes is capped at 300, 
       # most likely the top 300 ones but need to make sure that's the exact criteria
       print(len(result.boxes))
-      predict_boxes = np.empty((len(result.boxes),6))
-      for i, box in enumerate(result.boxes):
-        predict_boxes[i,:4] = box.xyxyn.cpu().numpy()[0]
-        predict_boxes[i,4] = box.conf.cpu().numpy()[0]
-        predict_boxes[i,5] = box.cls.cpu().numpy()[0]
-        print(predict_boxes[i,4], predict_boxes[i,5], predict_boxes[i,:4])
+      print(result.boxes.xyxyn.shape)
+      print(result.boxes.conf.shape)
+      print(result.boxes.cls.shape)
+      predict_boxes = torch.cat((result.boxes.xyxyn, result.boxes.conf.unsqueeze(1), result.boxes.cls.unsqueeze(1)), dim=1)
       print("prediction", predict_boxes.shape)
 
-      conf_mat.process_batch(torch.tensor(predict_boxes), torch.tensor(gt_boxes), torch.tensor(gt_cls))
+      #conf_mat.process_batch(torch.tensor(predict_boxes), torch.tensor(gt_boxes), torch.tensor(gt_cls))
       
       if WANDB:
-        box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt_string, class_coco, classid_fisheye)
+        box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt_string, class_name, classid_coco, classid_fisheye)
         table.add_data(img_id, box_img)
 
     # compute benchmarks against the groundtruth
