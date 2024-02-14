@@ -9,7 +9,7 @@ WANDB = os.getenv("WANDB", False)
 
 if __name__ == "__main__":
   if WANDB:
-    run = wandb.init(project="yolov8-fisheye", name="yolov8x_predict_test_128")
+    run = wandb.init(project="fisheye-challenge", name="yolov8x_predict_test_128")
     table = wandb.Table(columns=["ID", "Image"])
   
   data_dir = '../dataset/Fisheye8K_all_including_train/test/images/'
