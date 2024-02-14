@@ -16,11 +16,17 @@ if __name__ == "__main__":
   label_dir = '../dataset/Fisheye8K_all_including_train/test/labels/'
   sources = [data_dir+img for img in os.listdir(data_dir)]
   print(f"Total data for inference {len(sources)}")
-  
-  model = YOLO('yolov8x.pt')
+
+  # coco labels and fisheye label indices based on coco labels
   class_coco = {0: 'person', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'} 
   classid_fisheye = [5, 3, 2, 0, 7]
-  
+ 
+  model = YOLO('yolov8x.pt')
+  conf_mat = ConfusionMatrix(5, conf=0.25, iou_thres=0.45, task="detect")
+ 
+  detections = np.zeros(128, 6)
+  gt_bboxes  = np.zeros(128, 6)
+  gt_cls     = np.zeros(128)
   #for i in range(len(sources)//128+1):
   for i in range(1):
     # starting and ending indices for each batch
@@ -34,7 +40,7 @@ if __name__ == "__main__":
       # TODO: do I need to save this or just use boxes to retrieve value for benchmarks calculation?
       result.save_txt("results/" + img_id.replace(".png", ".txt"))
 
-      # Load the groundtruth for plotting comparison [x, y, width, height]
+      # Load the groundtruth for corresponding image - [x, y, width, height]
       boxes_gt = []
       with open(label_dir + img_id.replace(".png", ".txt"), "r") as file:
         boxes_gt = file.readlines()
