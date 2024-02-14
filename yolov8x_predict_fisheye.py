@@ -1,4 +1,4 @@
-import io, os, cv2, wandb
+import io, os, cv2, torch, wandb
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -43,8 +43,8 @@ if __name__ == "__main__":
 
       # Calculate benchmarks
       # NOTE: might be easier to do if read from json instead
-      gt_boxes = np.empty((len(boxes_gt_string),4))
-      gt_cls = np.empty(len(boxes_gt_string))
+      gt_boxes = np.zeros((len(boxes_gt_string),4))
+      gt_cls = np.zeros(len(boxes_gt_string))
       for i, box in enumerate(boxes_gt_string):
         gt_cls[i] = classid_fisheye[int(box.split()[0])]
         gt_boxes[i,:] = ops.xywh2xyxy(np.array([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
@@ -62,6 +62,8 @@ if __name__ == "__main__":
         predict_boxes[i,5] = box.cls.cpu().numpy()[0]
         print(predict_boxes[i,4], predict_boxes[i,5], predict_boxes[i,:4])
       print("prediction", predict_boxes.shape)
+
+      conf_mat.process_batch(torch.tensor(predict_boxes), torch.tensor(gt_boxes), torch.tensor(gt_cls))
       
       if WANDB:
         box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt_string, class_coco, classid_fisheye)
