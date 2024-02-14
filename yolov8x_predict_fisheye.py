@@ -31,7 +31,7 @@ if __name__ == "__main__":
   for i in range(1):
     # starting and ending indices for each batch
     start = i*128
-    end = (i+1)*128 if i<=20 else -1 
+    end = (i+1)*128 if i <= 20 else -1 
 
     results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, conf=0.0, iou=0.7, stream=True)
     for result in results:
@@ -65,6 +65,7 @@ if __name__ == "__main__":
         table.add_data(img_id, box_img)
 
     # compute benchmarks against the groundtruth
+    print(conf_mat.matrix)
     
   if WANDB:
     run.log({"Table" : table})
