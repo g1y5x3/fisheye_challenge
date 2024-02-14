@@ -30,6 +30,8 @@ class FisheyeDetectionValidator(DetectionValidator):
   # gts   [x, y, w, h, cls]      : list of ground truths from the same image
   def update_metrics(self, preds, gts):
     for pred, gt in zip(preds, gts):
+      print(pred)
+      print(gt)
       self.seen += 1
       npr = len(pred)
       stat = dict(
@@ -50,9 +52,6 @@ class FisheyeDetectionValidator(DetectionValidator):
 
     stat["conf"], stat["pred_cls"] = pred[:, 4], pred[:, 5]
     if nl:
-      print(preds)
-      print(bbox)
-      print(cls)
       stat["tp"] = self._process_batch(preds, bbox, cls)
       self.confusion_matrix.process_batch(detection=pred, gt_bboxes=bbox, gt_cls=cls)
     for k in self.stats.keys():
