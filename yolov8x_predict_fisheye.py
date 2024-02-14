@@ -21,10 +21,8 @@ if __name__ == "__main__":
 
   # For the convenience of confusion matrix, all labels are convered to 0 ~ 4, probably can write it in a cleaner way
   class_name = {0: 'person', 1: 'car', 2: 'motorcycle', 3: 'bus', 4: 'truck'} 
-  # {0: 'person', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
-  classid_coco    = {0:0, 2:1, 3:2, 5:3, 7:4} 
-  # {0: 'bus', 1: 'motorcycle', 2: 'car', 3: 'person', 4: 'truck'}
-  classid_fisheye = {0:3, 1:2, 2:1, 3:0, 4:4} 
+  classid_coco    = {0:0, 2:1, 3:2, 5:3, 7:4}   # {0: 'person', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
+  classid_fisheye = {0:3, 1:2, 2:1, 3:0, 4:4}   # {0: 'bus', 1: 'motorcycle', 2: 'car', 3: 'person', 4: 'truck'} 
  
   model = YOLO('yolov8x.pt')
   conf_mat = ConfusionMatrix(5, conf=0.25, iou_thres=0.45, task="detect")
@@ -46,25 +44,21 @@ if __name__ == "__main__":
 
       # Calculate benchmarks
       # NOTE: might be easier to do if read from json instead
-      gt_boxes = np.zeros((len(boxes_gt_string),4))
-      gt_cls = np.zeros(len(boxes_gt_string))
+      gt_boxes = torch.empty((len(boxes_gt_string),4))
+      gt_cls = torch.empty(len(boxes_gt_string))
       for i, box in enumerate(boxes_gt_string):
         gt_cls[i] = classid_fisheye[int(box.split()[0])]
-        gt_boxes[i,:] = ops.xywh2xyxy(np.array([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
-        print(gt_cls[i], gt_boxes[i,:])
+        gt_boxes[i,:] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
       print("groundtruth", gt_boxes.shape)
       print("groundtruth", gt_cls.shape)
 
       # TODO: apparently when you set conf threhold to 0, the total amount of bounding boxes is capped at 300, 
       # most likely the top 300 ones but need to make sure that's the exact criteria
-      print(len(result.boxes))
-      print(result.boxes.xyxyn.shape)
-      print(result.boxes.conf.shape)
-      print(result.boxes.cls.shape)
-      predict_boxes = torch.cat((result.boxes.xyxyn, result.boxes.conf.unsqueeze(1), result.boxes.cls.unsqueeze(1)), dim=1)
+      cls = torch.tensor([classid_coco[i] for i in result.boxes.cls.cpu().numpy()])
+      predict_boxes = torch.cat((result.boxes.xyxyn.cpu(), result.boxes.conf.cpu().unsqueeze(1), cls.unsqueeze(1)), dim=1)
       print("prediction", predict_boxes.shape)
 
-      #conf_mat.process_batch(torch.tensor(predict_boxes), torch.tensor(gt_boxes), torch.tensor(gt_cls))
+      conf_mat.process_batch(predict_boxes, gt_boxes, gt_cls)
       
       if WANDB:
         box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt_string, class_name, classid_coco, classid_fisheye)
