@@ -24,7 +24,7 @@ def bounding_boxes(img, boxes_predict, boxes_gt, class_coco, classid_fisheye):
                "box_data": [
                  {
                    "position": {
-                     "minX": float(box.xyxyn.cpu().numpy()[0][0]),
+                     "minX": float(box.xyxyn.cpu().numpy()[0][0]),  # check how to avoid the first indexing
                      "minY": float(box.xyxyn.cpu().numpy()[0][1]),
                      "maxX": float(box.xyxyn.cpu().numpy()[0][2]),
                      "maxY": float(box.xyxyn.cpu().numpy()[0][3]),

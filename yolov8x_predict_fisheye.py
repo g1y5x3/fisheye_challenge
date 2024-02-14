@@ -1,8 +1,10 @@
 import io, os, cv2, wandb
+import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from ultralytics import YOLO
-from ultralytics.utils.metrics import ConfusionMatrix, DetMetrics, Metrics
+from ultralytics.utils import ops
+from ultralytics.utils.metrics import ConfusionMatrix, DetMetrics, Metric
 from utils import bounding_boxes 
 
 WANDB = os.getenv("WANDB", False)
@@ -31,20 +33,38 @@ if __name__ == "__main__":
     end = (i+1)*128 if i<=20 else -1 
 
     results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, conf=0.0, iou=0.7, stream=True)
-
     for result in results:
       img_id = result.path.rsplit('/',1)[-1]
       print(img_id)
 
       # Load the groundtruth for corresponding image - [x, y, width, height]
       with open(label_dir + img_id.replace(".png", ".txt"), "r") as file:
-        boxes_gt = file.readlines()
+        boxes_gt_string = file.readlines()
 
-      # NOTE: an alternative way is to save the predictions as json file and call eval_json() from val.py
+      # Calculate benchmarks
+      # NOTE: might be easier to do if read from json instead
+      gt_boxes = np.empty((len(boxes_gt_string),4))
+      gt_cls = np.empty(len(boxes_gt_string))
+      for i, box in enumerate(boxes_gt_string):
+        gt_cls[i] = classid_fisheye[int(box.split()[0])]
+        gt_boxes[i,:] = ops.xywh2xyxy(np.array([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
+        print(gt_cls[i], gt_boxes[i,:])
+      print("groundtruth", gt_boxes.shape)
+      print("groundtruth", gt_cls.shape)
 
+      # TODO: apparently when you set conf threhold to 0, the total amount of bounding boxes is capped at 300, 
+      # most likely the top 300 ones but need to make sure that's the exact criteria
+      print(len(result.boxes))
+      predict_boxes = np.empty((len(result.boxes),6))
+      for i, box in enumerate(result.boxes):
+        predict_boxes[i,:4] = box.xyxyn.cpu().numpy()[0]
+        predict_boxes[i,4] = box.conf.cpu().numpy()[0]
+        predict_boxes[i,5] = box.cls.cpu().numpy()[0]
+        print(predict_boxes[i,4], predict_boxes[i,5], predict_boxes[i,:4])
+      print("prediction", predict_boxes.shape)
       
       if WANDB:
-        box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt, class_coco, classid_fisheye)
+        box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt_string, class_coco, classid_fisheye)
         table.add_data(img_id, box_img)
 
     # compute benchmarks against the groundtruth
