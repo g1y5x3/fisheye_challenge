@@ -27,11 +27,15 @@ class FisheyeDetectionValidator(DetectionValidator):
   # https://github.com/ultralytics/ultralytics/blob/5e81651b4f85fb3d404148eedc6b0513628514f2/ultralytics/models/yolo/detect/val.py#L117 
   # to make it more framework agnostic
   # preds [x, y, x, y, conf, cls]: list of predictions from each image
-  # gts   [x, y, w, h, cls]      : list of ground truths from the same image
+  # gts   [x, y, x, y, cls]      : list of ground truths from the same image
+  # NOTE: currently x, y, w, and h are provided as normalized coordinate
   def update_metrics(self, preds, gts):
-    for pred, gt in zip(preds, gts):
-      print(pred)
-      print(gt)
+    print(len(preds))
+    print(len(gts))
+    for i, (pred, gt) in enumerate(zip(preds, gts)):
+      if i == 0:
+        print("pred", pred)
+        print("gt", gt)
       self.seen += 1
       npr = len(pred)
       stat = dict(
@@ -44,18 +48,19 @@ class FisheyeDetectionValidator(DetectionValidator):
       nl = len(cls)
       stat["target_cls"] = cls
       if npr == 0:
+        print("npr == 0")
         if nl:
           for k in self.stats.keys():
             self.stats[k].append(stat[k]) 
           self.confusion_matrix.process_batch(detections=None, gt_bboxes=bbox, gt_cls=cls)
         continue
 
-    stat["conf"], stat["pred_cls"] = pred[:, 4], pred[:, 5]
-    if nl:
-      stat["tp"] = self._process_batch(preds, bbox, cls)
-      self.confusion_matrix.process_batch(detection=pred, gt_bboxes=bbox, gt_cls=cls)
-    for k in self.stats.keys():
-      self.stats[k].append(stat[k])
+      stat["conf"], stat["pred_cls"] = pred[:, 4], pred[:, 5]
+      if nl:
+        stat["tp"] = self._process_batch(pred, bbox, cls)
+        self.confusion_matrix.process_batch(detections=pred, gt_bboxes=bbox, gt_cls=cls)
+      for k in self.stats.keys():
+        self.stats[k].append(stat[k])
     
       
 if __name__ == "__main__":
@@ -88,9 +93,9 @@ if __name__ == "__main__":
 
     preds = []
     gts = []
-    for result in results:
+    for j, result in enumerate(results):
       img_id = result.path.rsplit('/',1)[-1]
-      print(img_id)
+      if j==0: print(img_id)
 
       # Load the groundtruth for corresponding image - [x, y, width, height]
       with open(label_dir + img_id.replace(".png", ".txt"), "r") as file:
@@ -100,18 +105,22 @@ if __name__ == "__main__":
       # NOTE: might be easier to do if read from json instead
       gt_boxes = torch.empty((len(boxes_gt_string),4))
       gt_cls = torch.empty(len(boxes_gt_string))
-      for i, box in enumerate(boxes_gt_string):
-        gt_cls[i] = classid_fisheye[int(box.split()[0])]
-        gt_boxes[i,:] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
+      for index, box in enumerate(boxes_gt_string):
+        gt_cls[index] = classid_fisheye[int(box.split()[0])]
+        gt_boxes[index,:] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
       gt = torch.cat((gt_boxes, gt_cls.unsqueeze(1)), dim=1)
-      print("groundtruth", gt.shape)
+      if j==0: 
+        print("groundtruth", gt)
+        print("groundtruth", gt.shape)
       gts.append(gt)
 
       # TODO: apparently when you set conf threhold to 0, the total amount of bounding boxes is capped at 300, 
       # most likely the top 300 ones but need to make sure that's the exact criteria
       cls = torch.tensor([classid_coco[i] for i in result.boxes.cls.cpu().numpy()])
       pred = torch.cat((result.boxes.xyxyn.cpu(), result.boxes.conf.cpu().unsqueeze(1), cls.unsqueeze(1)), dim=1)
-      print("prediction", pred.shape)
+      if j==0: 
+        print("prediction", pred)
+        print("prediction", pred.shape)
       preds.append(pred)
 
       conf_mat.process_batch(pred, gt_boxes, gt_cls)
@@ -122,8 +131,8 @@ if __name__ == "__main__":
 
     fisheye_eval.update_metrics(preds, gts)
 
-    # compute benchmarks against the groundtruth
   print(conf_mat.matrix)
+  print(fisheye_eval.confusion_matrix.matrix)
     
   if WANDB:
     run.log({"Table" : table})
