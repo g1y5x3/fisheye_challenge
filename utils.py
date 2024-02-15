@@ -7,8 +7,8 @@ class FisheyeDetectionValidator(DetectionValidator):
   # modifiedy from
   # https://github.com/ultralytics/ultralytics/blob/main/ultralytics/models/yolo/detect/val.py
   # to make it more framework agnostic
-  # preds [x, y, x, y, conf, cls]: list of predictions from each image
-  # gts   [x, y, x, y, cls]      : list of ground truths from the same image
+  # preds [[x, y, x, y, conf, cls], ...]: list of torch.tensors [N, 6]
+  # gts   [[x, y, x, y, cls], ...]      : list of torch.tensors [M, 5]
   # NOTE: currently x, y, w, and h are provided as normalized coordinate
 
   def __init__(self, dataloader=None, save_dir=None, pbar=None, args=None, _callbacks=None):
@@ -23,7 +23,7 @@ class FisheyeDetectionValidator(DetectionValidator):
     self.seen = 0
     self.stats = dict(tp=[], conf=[], pred_cls=[], target_cls=[])
 
-  # TODO: refactor this
+  # TODO: refactor this, to add thresholding to the preds
   def update_metrics(self, preds, gts):
     for pred, gt in zip(preds, gts):
       self.seen += 1
