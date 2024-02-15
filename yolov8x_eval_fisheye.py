@@ -44,7 +44,7 @@ if __name__ == "__main__":
       with open(label_dir + img_id.replace(".png", ".txt"), "r") as file:
         boxes_gt_string = file.readlines()
 
-      # Calculate benchmarks
+      # convert both predictions and ground truths into the format to calculate benchmarks
       gt = torch.empty((len(boxes_gt_string), 5))
       for i_box, box in enumerate(boxes_gt_string):
         gt[i_box, :4] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
@@ -64,6 +64,7 @@ if __name__ == "__main__":
     fisheye_eval.update_metrics(preds, gts)
 
   print(fisheye_eval.confusion_matrix.matrix)
+  fisheye_eval.confusion_matrix.plot(save_dir="results", names=tuple(class_name.values()))
   fisheye_eval.get_stats()
   print(fisheye_eval.get_desc())
   fisheye_eval.print_results()
