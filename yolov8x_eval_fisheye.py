@@ -11,6 +11,13 @@ from utils import bounding_boxes
 WANDB = os.getenv("WANDB", False)
 
 class FisheyeDetectionValidator(DetectionValidator):
+  # modifiedy from 
+  # https://github.com/ultralytics/ultralytics/blob/main/ultralytics/models/yolo/detect/val.py
+  # to make it more framework agnostic
+  # preds [x, y, x, y, conf, cls]: list of predictions from each image
+  # gts   [x, y, x, y, cls]      : list of ground truths from the same image
+  # NOTE: currently x, y, w, and h are provided as normalized coordinate
+
   def __init__(self, dataloader=None, save_dir=None, pbar=None, args=None, _callbacks=None):
     super().__init__(dataloader, save_dir, pbar, args, _callbacks)
 
@@ -23,12 +30,6 @@ class FisheyeDetectionValidator(DetectionValidator):
     self.jdict= []
     self.stats = dict(tp=[], conf=[], pred_cls=[], target_cls=[])
 
-  # modifiedy from 
-  # https://github.com/ultralytics/ultralytics/blob/5e81651b4f85fb3d404148eedc6b0513628514f2/ultralytics/models/yolo/detect/val.py#L117 
-  # to make it more framework agnostic
-  # preds [x, y, x, y, conf, cls]: list of predictions from each image
-  # gts   [x, y, x, y, cls]      : list of ground truths from the same image
-  # NOTE: currently x, y, w, and h are provided as normalized coordinate
   def update_metrics(self, preds, gts):
     print(len(preds))
     print(len(gts))
@@ -38,8 +39,8 @@ class FisheyeDetectionValidator(DetectionValidator):
         print("gt", gt)
       self.seen += 1
       npr = len(pred)
+      # TODO: maybe ade device=self.device back later, is this even correct???
       stat = dict(
-        # TODO: add device=self.device back later
         conf=torch.zeros(0),
         pred_cls=torch.zeros(0),
         tp=torch.zeros(npr, self.niou, dtype=torch.bool),
@@ -53,14 +54,13 @@ class FisheyeDetectionValidator(DetectionValidator):
           for k in self.stats.keys():
             self.stats[k].append(stat[k]) 
           self.confusion_matrix.process_batch(detections=None, gt_bboxes=bbox, gt_cls=cls)
-        continue
-
-      stat["conf"], stat["pred_cls"] = pred[:, 4], pred[:, 5]
-      if nl:
-        stat["tp"] = self._process_batch(pred, bbox, cls)
-        self.confusion_matrix.process_batch(detections=pred, gt_bboxes=bbox, gt_cls=cls)
-      for k in self.stats.keys():
-        self.stats[k].append(stat[k])
+      else:
+        stat["conf"], stat["pred_cls"] = pred[:, 4], pred[:, 5]
+        if nl:
+          stat["tp"] = self._process_batch(pred, bbox, cls)
+          self.confusion_matrix.process_batch(detections=pred, gt_bboxes=bbox, gt_cls=cls)
+        for k in self.stats.keys():
+          self.stats[k].append(stat[k])
     
       
 if __name__ == "__main__":
@@ -103,12 +103,17 @@ if __name__ == "__main__":
 
       # Calculate benchmarks
       # NOTE: might be easier to do if read from json instead
-      gt_boxes = torch.empty((len(boxes_gt_string),4))
-      gt_cls = torch.empty(len(boxes_gt_string))
-      for index, box in enumerate(boxes_gt_string):
-        gt_cls[index] = classid_fisheye[int(box.split()[0])]
-        gt_boxes[index,:] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
-      gt = torch.cat((gt_boxes, gt_cls.unsqueeze(1)), dim=1)
+      #gt_boxes = torch.empty((len(boxes_gt_string),4))
+      #gt_cls = torch.empty(len(boxes_gt_string))
+      gt = torch.empty((len(boxes_gt_string), 5))
+      for i_box, box in enumerate(boxes_gt_string):
+        gt[i_box, :4] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
+        gt[i_box, 4] = classid_fisheye[int(box.split()[0])]
+
+        # gt_cls[index] = classid_fisheye[int(box.split()[0])]
+        # gt_boxes[index,:] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
+
+      #gt = torch.cat((gt_boxes, gt_cls.unsqueeze(1)), dim=1)
       if j==0: 
         print("groundtruth", gt)
         print("groundtruth", gt.shape)
@@ -123,7 +128,7 @@ if __name__ == "__main__":
         print("prediction", pred.shape)
       preds.append(pred)
 
-      conf_mat.process_batch(pred, gt_boxes, gt_cls)
+      conf_mat.process_batch(pred, gt[:, :4], gt[:,4])
       
       if WANDB:
         box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt_string, class_name, classid_coco, classid_fisheye)
