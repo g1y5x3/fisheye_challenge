@@ -1,27 +1,16 @@
 """
-if __name__ == "__main__":
-    from ultralytics.models.yolo.detect.train import DetectionTrainer
-    from ultralytics.utils import DEFAULT_CFG_DICT
-
-    cfg = DEFAULT_CFG_DICT.copy()
-    cfg.update(save_dir='')   # handle the extra key 'save_dir'
-    print(cfg)
-    print(overrides)
-    trainer = DetectionTrainer(cfg=cfg, overrides=overrides)
-    results = trainer.train()
+python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 1 -bs 32
 """
 import wandb, argparse
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
-  parser.add_argument('-devices', type=int, default=1, help="batch size")
+  parser.add_argument('-devices', type=int, default=1,  help="batch size")
+  parser.add_argument('-epoch',   type=int, default=1,  help="number of epoch")
+  parser.add_argument('-bs',      type=int, default=16, help="number of batches")
   args = parser.parse_args()
   
-  devices = args.devices
-  
-  # TODO: too much abstracted details
-  args = dict(model="yolov8x.pt", data="fisheye.yaml", device=[i for i in range(devices)], epochs=1, batch=32, imgsz=640)
-  trainer = DetectionTrainer(overrides=args)
+  train_args = dict(model="yolov8x.pt", data="fisheye.yaml", device=[i for i in range(args.devices)], epochs=args.epoch, batch=args.bs, imgsz=640)
+  trainer = DetectionTrainer(overrides=train_args)
   trainer.train()
-  
