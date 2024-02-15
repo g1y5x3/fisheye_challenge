@@ -1,18 +1,27 @@
+"""
+if __name__ == "__main__":
+    from ultralytics.models.yolo.detect.train import DetectionTrainer
+    from ultralytics.utils import DEFAULT_CFG_DICT
+
+    cfg = DEFAULT_CFG_DICT.copy()
+    cfg.update(save_dir='')   # handle the extra key 'save_dir'
+    print(cfg)
+    print(overrides)
+    trainer = DetectionTrainer(cfg=cfg, overrides=overrides)
+    results = trainer.train()
+"""
 import wandb, argparse
-from ultralytics import YOLO
+from ultralytics.models.yolo.detect.train import DetectionTrainer
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
   parser.add_argument('-devices', type=int, default=1, help="batch size")
   args = parser.parse_args()
-
-  arg = argparse
-  wandb.init(project="fisheye-challenge", name="yolov8x_train")
   
   devices = args.devices
-  model = YOLO('yolov8x.pt') # model was pretrained on COCO dataset
   
   # TODO: too much abstracted details
-  results = model.train(data="fisheye.yaml", device=[i for i in range(devices)], epochs=1, batch=16, imgsz=640)
+  args = dict(model="yolov8x.pt", data="fisheye.yaml", device=[i for i in range(devices)], epochs=1, batch=32, imgsz=640)
+  trainer = DetectionTrainer(overrides=args)
+  trainer.train()
   
-  wandb.finish()
