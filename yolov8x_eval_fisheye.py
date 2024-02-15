@@ -7,10 +7,11 @@ from ultralytics.utils import ops
 from utils import bounding_boxes, FisheyeDetectionValidator
 
 WANDB = os.getenv("WANDB", False)
+NAME  = os.getenv("NAME", "yolov8x_eval" )
       
 if __name__ == "__main__":
   if WANDB:
-    run = wandb.init(project="fisheye-challenge", name="yolov8x_eval_128")
+    run = wandb.init(project="fisheye-challenge", name=NAME)
     table = wandb.Table(columns=["ID", "Image"])
   
   data_dir  = '../dataset/Fisheye8K_all_including_train/test/images/'
@@ -65,10 +66,12 @@ if __name__ == "__main__":
 
   print(fisheye_eval.confusion_matrix.matrix)
   fisheye_eval.confusion_matrix.plot(save_dir="results", names=tuple(class_name.values()))
-  fisheye_eval.get_stats()
+  stat = fisheye_eval.get_stats()
   print(fisheye_eval.get_desc())
   fisheye_eval.print_results()
     
   if WANDB:
+    run.log(stat)
+    run.log({"metrics/conf_mat(B)": wandb.Image("results/confusion_matrix_normalized.png")})
     run.log({"Table" : table})
     run.finish()
