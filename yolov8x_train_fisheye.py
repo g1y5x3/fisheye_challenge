@@ -11,6 +11,7 @@ if __name__ == "__main__":
   parser.add_argument('-bs',      type=int, default=16, help="number of batches")
   args = parser.parse_args()
   
-  train_args = dict(model="yolov8x.pt", data="fisheye.yaml", device=[i for i in range(args.devices)], epochs=args.epoch, batch=args.bs, imgsz=640)
+  device = 0 if args.devices == 1 else [i for i in range(args.devices)]
+  train_args = dict(model="yolov8x.pt", data="fisheye.yaml", device=device, epochs=args.epoch, batch=args.bs, imgsz=640)
   trainer = DetectionTrainer(overrides=train_args)
   trainer.train()
