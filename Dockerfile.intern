@@ -1,0 +1,11 @@
+FROM --platform=linux/amd64 pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -y && \
+    apt-get install -y ssh && \ 
+    apt-get install -y vim  && \
+    apt-get install -y git  && \
+    apt-get -y install python3-pip && \
+    pip install wandb
+
+COPY datasets/Fisheye8K_all_including_train.tar.gz /workspace/FishEye8k/

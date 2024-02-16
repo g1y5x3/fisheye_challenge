@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: internimage-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: nvidia.com/gpu.product
+            operator: In
+            values:
+            - NVIDIA-GeForce-RTX-3090
+  volumes:
+  - name: git-secret
+    secret:
+      secretName: yixiang-key
+      defaultMode: 256
+  - name: dshm
+    emptyDir:
+      medium: Memory
+  - name: code
+    persistentVolumeClaim:
+      claimName: code-vol
+
+  containers:
+  - name: gpu-container
+    image: gitlab-registry.nrp-nautilus.io/yg5d6/internimage
+    command: ["/bin/sh", "-c"]
+    args:
+    - cd /workspace/FishEye8k/;
+      mkdir dataset;
+      tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
+      mkdir /root/.ssh/;
+      cp /etc/ssh-key/ssh-privatekey /root/.ssh/id_ed25519;
+      wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
+      git config --global user.name  "Yixiang Gao";
+      git config --global user.email "yg5d6@mail.missouri.edu";
+      sleep infinity;
+    resources:
+      limits:
+        memory: "32G"
+        cpu: "8"
+        nvidia.com/gpu: "1"
+      requests:
+        memory: "32G"
+        cpu: "8"
+        nvidia.com/gpu: "1"
+    volumeMounts:
+    - name: git-secret
+      readOnly: true
+      mountPath: /etc/ssh-key
+    - name: dshm
+      mountPath: /dev/shm
+    - name: code
+      mountPath: /workspace/code
