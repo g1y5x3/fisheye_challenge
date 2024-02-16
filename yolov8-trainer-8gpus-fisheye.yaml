@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata: 
+  name: yolov8-trainer-8gpus-fisheye
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nvidia.com/gpu.product
+                operator: In
+                values:
+                - NVIDIA-A100-SXM4-80GB
+                - NVIDIA-RTX-A6000
+                - NVIDIA-RTX-A5000
+                - NVIDIA-A40
+                - NVIDIA-A10
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: code
+        persistentVolumeClaim:
+          claimName: code-vol
+
+      containers:
+      - name: gpu-container
+        image: gitlab-registry.nrp-nautilus.io/yg5d6/yolov8
+        command: ["/bin/sh", "-c"]
+        args:
+        - cd /workspace/FishEye8k/;
+          mkdir dataset;
+          tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
+          wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
+          cp -r /workspace/code/fisheye_challenge .;
+          cd fisheye_challenge;
+          python -m torch.distributed.run --nproc_per_node 8 yolov8x_train_fisheye.py -devices 8 -epoch 10 -bs 128;
+        resources:
+          limits:
+            memory: "64G"
+            cpu: "8"
+            nvidia.com/gpu: "8"
+          requests:
+            memory: "64G"
+            cpu: "8"
+            nvidia.com/gpu: "8"
+        volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        - name: code
+          mountPath: /workspace/code
+      restartPolicy: Never
