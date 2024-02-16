@@ -4,14 +4,15 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from ultralytics import YOLO
 from ultralytics.utils import ops
-from utils import bounding_boxes, FisheyeDetectionValidator
+from utils import bounding_boxes 
+from val import FisheyeDetectionValidator
 
 WANDB = os.getenv("WANDB", False)
 NAME  = os.getenv("NAME", "yolov8x_eval" )
       
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
-  parser.add_argument('-conf', type=float, default=0.25, help="batch size")
+  parser.add_argument('-conf', type=float, default=0.001, help="batch size")
   parser.add_argument('-iou',  type=float, default=0.7,  help="number of workers")
   args = parser.parse_args()
 
