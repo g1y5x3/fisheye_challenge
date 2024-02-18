@@ -27,7 +27,7 @@ spec:
 
   containers:
   - name: gpu-container
-    image: gitlab-registry.nrp-nautilus.io/yg5d6/internimage
+    image: gitlab-registry.nrp-nautilus.io/yg5d6/internimage:v3
     command: ["/bin/sh", "-c"]
     args:
     - mkdir /root/.ssh/;
