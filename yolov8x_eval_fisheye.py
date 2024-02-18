@@ -23,8 +23,8 @@ if __name__ == "__main__":
     run = wandb.init(project="fisheye-challenge", name=NAME, config=config)
     table = wandb.Table(columns=["ID", "Image"])
   
-  data_dir  = '../dataset/Fisheye8K_all_including_train/test/images/'
-  label_dir = '../dataset/Fisheye8K_all_including_train/test/labels/'
+  data_dir  = "../dataset/Fisheye8K_all_including_train/test/images/"
+  label_dir = "../dataset/Fisheye8K_all_including_train/test/labels/"
   sources = [data_dir+img for img in os.listdir(data_dir)]
   print(f"Total data for inference {len(sources)}")
 
