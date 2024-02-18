@@ -1,19 +1,18 @@
 #python image_demo.py /workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/images/camera1_A_11.png configs/coco/cascade_internimage_xl_fpn_3x_coco.py checkpoints/cascade_internimage_xl_fpn_3x_coco.pth
 
-# Copyright (c) OpenMMLab. All rights reserved.
-import asyncio
-from argparse import ArgumentParser
-
-from mmdet.apis import (async_inference_detector, inference_detector,
-                        init_detector, show_result_pyplot)
+# modifiey from https://github.com/OpenGVLab/InternImage/blob/master/detection/image_demo.py
+import asyncio, argparse
 import mmcv
-import mmcv_custom  # noqa: F401,F403
+# F401: indicates that a module imported in the code is not useda
+# F403: indicates that a particular import is shadowed by another import
+import mmcv_custom   # noqa: F401,F403
 import mmdet_custom  # noqa: F401,F403
-import os.path as osp
+from pathlib import Path
+from mmdet.apis import (async_inference_detector, inference_detector, init_detector, show_result_pyplot)
 
 
 def parse_args():
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument('img', help='Image file')
     parser.add_argument('config', help='Config file')
     parser.add_argument('checkpoint', help='Checkpoint file')
@@ -42,7 +41,7 @@ def main(args):
     result = inference_detector(model, args.img)
     
     mmcv.mkdir_or_exist(args.out)
-    out_file = osp.join(args.out, osp.basename(args.img))
+    out_file = Path(args.out) / Path(args.img).name
     # show the results
     model.show_result(
         args.img,
