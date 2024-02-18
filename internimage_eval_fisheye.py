@@ -1,8 +1,7 @@
 #python image_demo.py /workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/images/camera1_A_11.png configs/coco/cascade_internimage_xl_fpn_3x_coco.py checkpoints/cascade_internimage_xl_fpn_3x_coco.pth
 
 # modifiey from https://github.com/OpenGVLab/InternImage/blob/master/detection/image_demo.py
-import asyncio, argparse
-import mmcv
+import requests, mmcv, asyncio, argparse
 # F401: indicates that a module imported in the code is not useda
 # F403: indicates that a particular import is shadowed by another import
 import mmcv_custom   # noqa: F401,F403
@@ -15,7 +14,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('img', help='Image file')
     parser.add_argument('config', help='Config file')
-    parser.add_argument('checkpoint', help='Checkpoint file')
     parser.add_argument('--out', type=str, default="demo", help='out dir')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
@@ -35,8 +33,14 @@ def parse_args():
 
 
 def main(args):
+    checkpoint = "checkpoints/cascade_internimage_xl_fpn_3x_coco.pth"
+    if not Path(checkpoint).exists():
+        print("Model checkpoint doesn't exist. Downloading...")
+        # ideally to use tqdm to show progress
+        response = requests.get("https://huggingface.co/OpenGVLab/InternImage/resolve/main/cascade_internimage_xl_fpn_3x_coco.pth")
+        Path(checkpoint).write_bytes(response.content)
     # build the model from a config file and a checkpoint file
-    model = init_detector(args.config, args.checkpoint, device=args.device)
+    model = init_detector(args.config, checkpoint, device=args.device)
     # test a single image
     result = inference_detector(model, args.img)
     
