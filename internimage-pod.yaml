@@ -11,6 +11,7 @@ spec:
           - key: nvidia.com/gpu.product
             operator: In
             values:
+            - NVIDIA-A10
             - NVIDIA-GeForce-RTX-3090
   volumes:
   - name: git-secret
@@ -20,23 +21,24 @@ spec:
   - name: dshm
     emptyDir:
       medium: Memory
-  - name: code
-    persistentVolumeClaim:
-      claimName: code-vol
+  # - name: code
+  #   persistentVolumeClaim:
+  #     claimName: code-vol
 
   containers:
   - name: gpu-container
     image: gitlab-registry.nrp-nautilus.io/yg5d6/internimage
     command: ["/bin/sh", "-c"]
     args:
-    - cd /workspace/FishEye8k/;
-      mkdir dataset;
-      tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
-      mkdir /root/.ssh/;
+    - mkdir /root/.ssh/;
       cp /etc/ssh-key/ssh-privatekey /root/.ssh/id_ed25519;
+      cd /workspace/FishEye8k/;
       wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
       git config --global user.name  "Yixiang Gao";
       git config --global user.email "yg5d6@mail.missouri.edu";
+      mkdir dataset;
+      tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
+      cd /workspace/FishEye8k/;
       sleep infinity;
     resources:
       limits:
@@ -53,5 +55,5 @@ spec:
       mountPath: /etc/ssh-key
     - name: dshm
       mountPath: /dev/shm
-    - name: code
-      mountPath: /workspace/code
+    # - name: code
+    #   mountPath: /workspace/code
