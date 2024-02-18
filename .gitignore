@@ -1,6 +1,5 @@
-datasets
-runs
-wandb
+runs/
+wandb/
 
 ops_dcnv3/build
 ops_dcnv3/dist
