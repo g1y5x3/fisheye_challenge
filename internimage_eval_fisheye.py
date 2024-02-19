@@ -94,9 +94,6 @@ def parse_args():
         description='MMDet test (and eval) a model')
     parser.add_argument('config', help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument(
-        '--work-dir',
-        help='the directory to save the file containing evaluation metrics')
     parser.add_argument('--out', help='output result file in pickle format')
     parser.add_argument(
         '--fuse-conv-bn',
@@ -177,17 +174,7 @@ def parse_args():
 
 
 def main():
-    print('!!!!!!!!!!!!!!!!!!1', flush=True)
     args = parse_args()
-
-    assert args.out or args.eval or args.format_only or args.show \
-        or args.show_dir, \
-        ('Please specify at least one operation (save/eval/format/show the '
-         'results / save the results) with the argument "--out", "--eval"'
-         ', "--format-only", "--show" or "--show-dir"')
-
-    if args.eval and args.format_only:
-        raise ValueError('--eval and --format_only cannot be both specified')
 
     if args.out is not None and not args.out.endswith(('.pkl', '.pickle')):
         raise ValueError('The output file must be a pkl file.')
@@ -210,61 +197,19 @@ def main():
             if cfg.model.neck.rfp_backbone.get('pretrained'):
                 cfg.model.neck.rfp_backbone.pretrained = None
 
-    # in case the test dataset is concatenated
-    samples_per_gpu = 16
-    if isinstance(cfg.data.test, dict):
-        cfg.data.test.test_mode = True
-        samples_per_gpu = cfg.data.test.pop('samples_per_gpu', 1)
-        print(f"samples per gpu {samples_per_gpu}")
-        samples_per_gpu = 16
-        if samples_per_gpu > 1:
-            # Replace 'ImageToTensor' to 'DefaultFormatBundle'
-            cfg.data.test.pipeline = replace_ImageToTensor(
-                cfg.data.test.pipeline)
-    elif isinstance(cfg.data.test, list):
-        for ds_cfg in cfg.data.test:
-            ds_cfg.test_mode = True
-        samples_per_gpu = max(
-            [ds_cfg.pop('samples_per_gpu', 1) for ds_cfg in cfg.data.test])
-        print(f"samples per gpu {samples_per_gpu}")
-        if samples_per_gpu > 1:
-            for ds_cfg in cfg.data.test:
-                ds_cfg.pipeline = replace_ImageToTensor(ds_cfg.pipeline)
-
-    if args.gpu_ids is not None:
-        cfg.gpu_ids = args.gpu_ids
-    else:
-        cfg.gpu_ids = range(1)
-
-    print('!!!!!!!!!!!!!!!!!!2', flush=True)
-    # init distributed env first, since logger depends on the dist info.
-    if args.launcher == 'none':
-        distributed = False
-        if len(cfg.gpu_ids) > 1:
-            warnings.warn(
-                f'We treat {cfg.gpu_ids} as gpu-ids, and reset to '
-                f'{cfg.gpu_ids[0:1]} as gpu-ids to avoid potential error in '
-                'non-distribute testing time.')
-            cfg.gpu_ids = cfg.gpu_ids[0:1]
-    else:
-        distributed = True
-        init_dist(args.launcher, **cfg.dist_params)
-    print('!!!!!!!!!!!!!!!!!!3', flush=True)
-
+    cfg.data.test.test_mode = True
+    # Replace 'ImageToTensor' to 'DefaultFormatBundle'
+    cfg.data.test.pipeline = replace_ImageToTensor(cfg.data.test.pipeline)
+    cfg.gpu_ids = range(1)
     rank, _ = get_dist_info()
-    # allows not to create
-    if args.work_dir is not None and rank == 0:
-        mmcv.mkdir_or_exist(osp.abspath(args.work_dir))
-        timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-        json_file = osp.join(args.work_dir, f'eval_{timestamp}.json')
 
     # build the dataloader
     print(cfg.data.test)
     dataset = build_dataset(cfg.data.test)
     data_loader = build_dataloader(dataset,
-                                   samples_per_gpu=samples_per_gpu,
-                                   workers_per_gpu=cfg.data.workers_per_gpu,
-                                   dist=distributed,
+                                   samples_per_gpu=32,
+                                   workers_per_gpu=4,
+                                   dist=False,
                                    shuffle=False)
 
     # build the model and load checkpoint
@@ -284,17 +229,9 @@ def main():
     else:
         model.CLASSES = dataset.CLASSES
 
-    if not distributed:
-        model = MMDataParallel(model, device_ids=cfg.gpu_ids)
-        outputs = single_gpu_test(model, data_loader, args.show, args.show_dir,
-                                  args.show_score_thr)
-    else:
-        model = MMDistributedDataParallel(
-            model.cuda(),
-            device_ids=[torch.cuda.current_device()],
-            broadcast_buffers=False)
-        outputs = multi_gpu_test(model, data_loader, args.tmpdir,
-                                 args.gpu_collect)
+    model = MMDataParallel(model, device_ids=cfg.gpu_ids)
+    outputs = single_gpu_test(model, data_loader, args.show, args.show_dir,
+                              args.show_score_thr)
 
     rank, _ = get_dist_info()
     if rank == 0:
