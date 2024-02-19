@@ -145,7 +145,7 @@ optimizer = dict(
                        depths=[5, 5, 24, 5], offset_lr_scale=0.01))
 optimizer_config = dict(grad_clip=None)
 # fp16 = dict(loss_scale=dict(init_scale=512))
-evaluation = dict(save_best='auto')
+evaluation = dict(metric=['bbox'], save_best='auto')
 checkpoint_config = dict(
     interval=1,
     max_keep_ckpts=3,
