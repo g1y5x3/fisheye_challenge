@@ -24,6 +24,7 @@ if __name__ == '__main__':
 
   # build the model from a config file and a checkpoint file
   model = init_detector(config, checkpoint, device="cuda:0")
+  print(model)
   # test a single image
   result = inference_detector(model, img_dir)
   
