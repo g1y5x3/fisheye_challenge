@@ -4,24 +4,20 @@
 # Licensed under The MIT License [see LICENSE for details]
 # --------------------------------------------------------
 
-import os
-import time
-import argparse
-import warnings
+import argparse, warnings, mmcv, torch
 
-import mmcv
-import torch
 from mmcv import Config, DictAction
 from mmcv.cnn import fuse_conv_bn
-from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
-from mmcv.runner import load_checkpoint
 from mmdet.apis import single_gpu_test
-from mmdet.datasets import build_dataloader, build_dataset, replace_ImageToTensor
+from mmcv.runner import load_checkpoint
+from mmcv.parallel import MMDataParallel
+from mmdet.datasets import build_dataloader, build_dataset
 from mmdet.models import build_detector
+# TODO: make more specific imports
 import mmdet_custom  # noqa: F401,F403
 import mmcv_custom  # noqa: F401,F403
 
-# just to reduce the number of batches for quick testing
+# just to reduce the number of batches for quick testing, the last three arguments are not used
 def single_gpu_4batch_test(model, data_loader, show=False, out_dir=None, show_score_thr=0.3):
   model.eval()
   results = []
@@ -43,7 +39,6 @@ def single_gpu_4batch_test(model, data_loader, show=False, out_dir=None, show_sc
       prog_bar.update()
 
   return results
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -124,7 +119,7 @@ def main():
 
   # build the model and load checkpoint
   cfg.model.train_cfg = None
-  model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
+  model = build_detector(cfg.model) # cfg.model contains the threshold for nms as well as score threshold
   checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
   model = fuse_conv_bn(model)
   model.CLASSES = dataset.CLASSES
