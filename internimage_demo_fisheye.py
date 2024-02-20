@@ -11,7 +11,7 @@ if __name__ == '__main__':
   data_dir = "../dataset/Fisheye8K_all_including_train/test/images/"
   config = "configs/cascade_internimage_xl_fpn_3x_coco.py"
   checkpoint = "checkpoints/cascade_internimage_xl_fpn_3x_coco.pth"
-  output = "result"
+  output = "results"
 
   img = "camera1_A_10.png" 
   img_dir = data_dir + img
@@ -27,6 +27,7 @@ if __name__ == '__main__':
   print(model)
   # test a single image
   result = inference_detector(model, img_dir)
+  print(len(result))
   
   mmcv.mkdir_or_exist(output)
   out_file = Path(output) / Path(img)
