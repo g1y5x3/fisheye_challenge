@@ -14,11 +14,9 @@ import torch
 from mmcv import Config, DictAction
 from mmcv.cnn import fuse_conv_bn
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
-from mmcv.runner import (get_dist_info, init_dist, load_checkpoint,
-                         wrap_fp16_model)
+from mmcv.runner import get_dist_info, init_dist, load_checkpoint
 from mmdet.apis import multi_gpu_test, single_gpu_test
-from mmdet.datasets import (build_dataloader, build_dataset,
-                            replace_ImageToTensor)
+from mmdet.datasets import build_dataloader, build_dataset, replace_ImageToTensor
 from mmdet.models import build_detector
 import mmdet_custom  # noqa: F401,F403
 import mmcv_custom  # noqa: F401,F403
@@ -28,17 +26,6 @@ def parse_args():
         description='MMDet test (and eval) a model')
     parser.add_argument('config', help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument('--out', help='output result file in pickle format')
-    parser.add_argument(
-        '--fuse-conv-bn',
-        action='store_true',
-        help='Whether to fuse conv and bn, this will slightly increase'
-        'the inference speed')
-    parser.add_argument('--gpu-ids',
-                        type=int,
-                        nargs='+',
-                        help='ids of gpus to use '
-                        '(only applicable to non-distributed testing)')
     parser.add_argument(
         '--format-only',
         action='store_true',
@@ -110,9 +97,6 @@ def parse_args():
 def main():
     args = parse_args()
 
-    if args.out is not None and not args.out.endswith(('.pkl', '.pickle')):
-        raise ValueError('The output file must be a pkl file.')
-
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
@@ -154,92 +138,91 @@ def main():
     model.CLASSES = dataset.CLASSES
     model = MMDataParallel(model, device_ids=cfg.gpu_ids)
 
-"""
-def single_gpu_test(model,
-                    data_loader,
-                    show=False,
-                    out_dir=None,
-                    show_score_thr=0.3):
-    model.eval()
-    results = []
-    dataset = data_loader.dataset
-    PALETTE = getattr(dataset, 'PALETTE', None)
-    prog_bar = mmcv.ProgressBar(len(dataset))
-    for i, data in enumerate(data_loader):
-        with torch.no_grad():
-            result = model(return_loss=False, rescale=True, **data)
-
-        batch_size = len(result)
-        if show or out_dir:
-            if batch_size == 1 and isinstance(data['img'][0], torch.Tensor):
-                img_tensor = data['img'][0]
-            else:
-                img_tensor = data['img'][0].data[0]
-            img_metas = data['img_metas'][0].data[0]
-            imgs = tensor2imgs(img_tensor, **img_metas[0]['img_norm_cfg'])
-            assert len(imgs) == len(img_metas)
-
-            for i, (img, img_meta) in enumerate(zip(imgs, img_metas)):
-                h, w, _ = img_meta['img_shape']
-                img_show = img[:h, :w, :]
-
-                ori_h, ori_w = img_meta['ori_shape'][:-1]
-                img_show = mmcv.imresize(img_show, (ori_w, ori_h))
-
-                if out_dir:
-                    out_file = osp.join(out_dir, img_meta['ori_filename'])
-                else:
-                    out_file = None
-
-                model.module.show_result(
-                    img_show,
-                    result[i],
-                    bbox_color=PALETTE,
-                    text_color=PALETTE,
-                    mask_color=PALETTE,
-                    show=show,
-                    out_file=out_file,
-                    score_thr=show_score_thr)
-
-        # encode mask results
-        if isinstance(result[0], tuple):
-            result = [(bbox_results, encode_mask_results(mask_results))
-                      for bbox_results, mask_results in result]
-        # This logic is only used in panoptic segmentation test.
-        elif isinstance(result[0], dict) and 'ins_results' in result[0]:
-            for j in range(len(result)):
-                bbox_results, mask_results = result[j]['ins_results']
-                result[j]['ins_results'] = (bbox_results,
-                                            encode_mask_results(mask_results))
-
-        results.extend(result)
-
-        for _ in range(batch_size):
-            prog_bar.update()
-    return results
-"""
-
+    # predict bounding boxes
     outputs = single_gpu_test(model, data_loader, args.show, args.show_dir, args.show_score_thr)
+    """
+    def single_gpu_test(model,
+                        data_loader,
+                        show=False,
+                        out_dir=None,
+                        show_score_thr=0.3):
+        model.eval()
+        results = []
+        dataset = data_loader.dataset
+        PALETTE = getattr(dataset, 'PALETTE', None)
+        prog_bar = mmcv.ProgressBar(len(dataset))
+        for i, data in enumerate(data_loader):
+            with torch.no_grad():
+                result = model(return_loss=False, rescale=True, **data)
+    
+            batch_size = len(result)
+            if show or out_dir:
+                if batch_size == 1 and isinstance(data['img'][0], torch.Tensor):
+                    img_tensor = data['img'][0]
+                else:
+                    img_tensor = data['img'][0].data[0]
+                img_metas = data['img_metas'][0].data[0]
+                imgs = tensor2imgs(img_tensor, **img_metas[0]['img_norm_cfg'])
+                assert len(imgs) == len(img_metas)
+    
+                for i, (img, img_meta) in enumerate(zip(imgs, img_metas)):
+                    h, w, _ = img_meta['img_shape']
+                    img_show = img[:h, :w, :]
+    
+                    ori_h, ori_w = img_meta['ori_shape'][:-1]
+                    img_show = mmcv.imresize(img_show, (ori_w, ori_h))
+    
+                    if out_dir:
+                        out_file = osp.join(out_dir, img_meta['ori_filename'])
+                    else:
+                        out_file = None
+    
+                    model.module.show_result(
+                        img_show,
+                        result[i],
+                        bbox_color=PALETTE,
+                        text_color=PALETTE,
+                        mask_color=PALETTE,
+                        show=show,
+                        out_file=out_file,
+                        score_thr=show_score_thr)
+    
+            # encode mask results
+            if isinstance(result[0], tuple):
+                result = [(bbox_results, encode_mask_results(mask_results))
+                          for bbox_results, mask_results in result]
+            # This logic is only used in panoptic segmentation test.
+            elif isinstance(result[0], dict) and 'ins_results' in result[0]:
+                for j in range(len(result)):
+                    bbox_results, mask_results = result[j]['ins_results']
+                    result[j]['ins_results'] = (bbox_results,
+                                                encode_mask_results(mask_results))
+    
+            results.extend(result)
+    
+            for _ in range(batch_size):
+                prog_bar.update()
+        return results
+    """
+    mmcv.dump(outputs, "results/internimage_eval.pkl")
 
-    mmcv.dump(outputs, args.out)
-
-        #kwargs = {} if args.eval_options is None else args.eval_options
-        #if args.format_only:
-        #    dataset.format_results(outputs, **kwargs)
-        #if args.eval:
-        #    eval_kwargs = cfg.get('evaluation', {}).copy()
-        #    # hard-code way to remove EvalHook args
-        #    for key in [
-        #            'interval', 'tmpdir', 'start', 'gpu_collect', 'save_best',
-        #            'rule', 'dynamic_intervals'
-        #    ]:
-        #        eval_kwargs.pop(key, None)
-        #    eval_kwargs.update(dict(metric=args.eval, **kwargs))
-        #    metric = dataset.evaluate(outputs, **eval_kwargs)
-        #    print(metric)
-        #    metric_dict = dict(config=args.config, metric=metric)
-        #    if args.work_dir is not None and rank == 0:
-        #        mmcv.dump(metric_dict, json_file)
+    #kwargs = {} if args.eval_options is None else args.eval_options
+    #if args.format_only:
+    #    dataset.format_results(outputs, **kwargs)
+    #if args.eval:
+    #    eval_kwargs = cfg.get('evaluation', {}).copy()
+    #    # hard-code way to remove EvalHook args
+    #    for key in [
+    #            'interval', 'tmpdir', 'start', 'gpu_collect', 'save_best',
+    #            'rule', 'dynamic_intervals'
+    #    ]:
+    #        eval_kwargs.pop(key, None)
+    #    eval_kwargs.update(dict(metric=args.eval, **kwargs))
+    #    metric = dataset.evaluate(outputs, **eval_kwargs)
+    #    print(metric)
+    #    metric_dict = dict(config=args.config, metric=metric)
+    #    if args.work_dir is not None and rank == 0:
+    #        mmcv.dump(metric_dict, json_file)
 
 if __name__ == '__main__':
     main()
