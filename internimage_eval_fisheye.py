@@ -40,6 +40,23 @@ def single_gpu_4batch_test(model, data_loader, show=False, out_dir=None, show_sc
 
   return results
 
+"""Convert detection results to COCO json style."""
+#def det2json(results):
+#  json_results = []
+#  for idx in range(128):
+#    img_id = self.img_ids[idx]
+#    result = results[idx]
+#    for label in range(len(result)):
+#      bboxes = result[label]
+#      for i in range(bboxes.shape[0]):
+#        data = dict()
+#        data['image_id'] = img_id
+#        data['bbox'] = self.xyxy2xywh(bboxes[i])
+#        data['score'] = float(bboxes[i][4])
+#        data['category_id'] = self.cat_ids[label]
+#        json_results.append(data)
+#  return json_results
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description='MMDet test (and eval) a model')
@@ -94,6 +111,7 @@ def parse_args():
     return args
 
 
+
 def main():
   args = parse_args()
 
@@ -109,7 +127,6 @@ def main():
   cfg.gpu_ids = range(1)
 
   # build the dataloader
-  print(cfg.data.test)
   dataset = build_dataset(cfg.data.test)
   data_loader = build_dataloader(dataset,
                                  samples_per_gpu=32,
@@ -129,8 +146,12 @@ def main():
   outputs = single_gpu_4batch_test(model, data_loader, show=False, out_dir=None, show_score_thr=0.3)
   mmcv.dump(outputs, "results/internimage_eval.pkl")
 
-  #TODO: Retrieve the image id with the test image sequences and upload to wandb using val.py
+  print(dataset.img_ids)
+  print(dataset.cat_ids)
+  #dataset.format_results(outputs, jsonfile_prefix="results")
+  dataset.results2json(outputs, "results/internimage")
 
+  #TODO: Retrieve the image id with the test image sequences and upload to wandb using val.py
   #kwargs = {} if args.eval_options is None else args.eval_options
   #if args.format_only:
   #    dataset.format_results(outputs, **kwargs)
