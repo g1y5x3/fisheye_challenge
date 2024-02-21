@@ -7,3 +7,4 @@ ops_dcnv3/dist
 ops_dcnv3/ops_dcnv3.egg-info
 
 *.pyc
+*.swp
