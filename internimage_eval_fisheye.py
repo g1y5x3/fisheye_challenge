@@ -1,11 +1,4 @@
-# --------------------------------------------------------
-# InternImage
-# Copyright (c) 2022 OpenGVLab
-# Licensed under The MIT License [see LICENSE for details]
-# --------------------------------------------------------
-
 import requests, argparse, warnings, mmcv, torch
-
 from mmcv import Config, DictAction
 from mmcv.cnn import fuse_conv_bn
 from mmdet.apis import single_gpu_test
@@ -13,7 +6,7 @@ from mmcv.runner import load_checkpoint
 from mmcv.parallel import MMDataParallel
 from mmdet.datasets import build_dataloader, build_dataset
 from mmdet.models import build_detector
-# TODO: make more specific imports
+# TODO: make more specific imports instead of loading everything
 import mmdet_custom  # noqa: F401,F403
 import mmcv_custom  # noqa: F401,F403
 from pathlib import Path

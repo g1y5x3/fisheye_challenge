@@ -37,16 +37,17 @@ if __name__ == "__main__":
   fisheye_eval = FisheyeDetectionValidator()
   fisheye_eval.init_metrics(class_name) 
  
-  for i in range(len(sources)//128+1):
-    # starting and ending indices for each batch
+  #for i in range(len(sources)//128+1):
+  for i in range(1):
     start = i*128
     end = (i+1)*128 if i <= 20 else -1 
 
-    # NOTE: the 'iou' here is used for NMS
-    results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, conf=config["model/conf"], iou=config["model/iou"], stream=True, verbose=True)
+    results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, conf=config["model/conf"], iou=config["model/iou"], stream=False, verbose=True)
+    print(results)
 
     preds, gts = [], []
     for result in results:
+      print(result.tojson())
       img_id = result.path.rsplit('/',1)[-1]
 
       # Load the groundtruth for corresponding image - [x, y, width, height]
