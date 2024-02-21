@@ -28,7 +28,7 @@ if __name__ == "__main__":
   sources = [data_dir+img for img in os.listdir(data_dir)]
   print(f"Total data for inference {len(sources)}")
 
-  # For the convenience of confusion matrix, all labels are convered to 0 ~ 4, probably can write it in an easier way
+  # For the convenience of confusion matrix, all labels are convered to 0 ~ 4
   class_name = {0: 'bus', 1: 'motorcycle', 2: 'car', 3: 'person', 4: 'truck'} 
   classid_fisheye = {0:0, 1:1, 2:2, 3:3, 4:4}   # {0: 'bus', 1: 'motorcycle', 2: 'car', 3: 'person', 4: 'truck'} 
   classid_coco    = {0:3, 2:2, 3:1, 5:0, 7:4}   # {0: 'person', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck'}
@@ -42,7 +42,9 @@ if __name__ == "__main__":
     start = i*128
     end = (i+1)*128 if i <= 20 else -1 
 
-    results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, conf=config["model/conf"], iou=config["model/iou"], stream=False, verbose=True)
+    results = model.predict(sources[start:end], classes=[0, 2, 3, 5, 7], imgsz=640, 
+                            conf=config["model/conf"], iou=config["model/iou"], 
+                            stream=False, verbose=True)
     print(results)
 
     preds, gts = [], []
@@ -57,7 +59,10 @@ if __name__ == "__main__":
       # convert both predictions and ground truths into the format to calculate benchmarks
       gt = torch.empty((len(boxes_gt_string), 5))
       for i_box, box in enumerate(boxes_gt_string):
-        gt[i_box, :4] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]), float(box.split()[2]), float(box.split()[3]), float(box.split()[4])]))
+        gt[i_box, :4] = ops.xywh2xyxy(torch.tensor([float(box.split()[1]),
+                                                    float(box.split()[2]),
+                                                    float(box.split()[3]),
+                                                    float(box.split()[4])]))
         gt[i_box,  4] = classid_fisheye[int(box.split()[0])]
       gts.append(gt)
 
@@ -68,7 +73,8 @@ if __name__ == "__main__":
       preds.append(pred)
 
       if WANDB:
-        box_img = bounding_boxes(result.orig_img, result.boxes, boxes_gt_string, class_name, classid_coco, classid_fisheye)
+        box_img = bounding_boxes(result.orig_img, result.boxes, 
+                                 boxes_gt_string, class_name, classid_coco, classid_fisheye)
         table.add_data(img_id, box_img)
 
     fisheye_eval.update_metrics(preds, gts)

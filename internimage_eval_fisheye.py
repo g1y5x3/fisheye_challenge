@@ -33,7 +33,7 @@ def single_gpu_4batch_test(model, data_loader, show=False, out_dir=None, show_sc
 
 def det2json(dataset, results):
   json_results = []
-  for idx in range(128):
+  for idx in range(len(results)):
     img_id = dataset.img_ids[idx]
     result = results[idx]
     for label in range(len(result)):
