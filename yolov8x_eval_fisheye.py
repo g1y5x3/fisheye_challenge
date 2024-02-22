@@ -11,8 +11,11 @@ if __name__ == "__main__":
   config = {"model/conf": args.conf,
             "model/iou" : args.iou}
   
-  data_dir  = "../dataset/Fisheye8K_all_including_train/test/images/"
-  sources = [data_dir+img for img in os.listdir(data_dir)]
+  data_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/images/"
+  with open("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/test.json") as f:
+    images = json.load(f)
+  files = images["images"]
+  sources = [data_dir+img["file_name"] for img in files]
   print(f"Total data for inference {len(sources)}")
 
   model = YOLO('checkpoints/yolov8x.pt') # model was trained on COCO dataset
