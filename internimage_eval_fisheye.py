@@ -84,7 +84,8 @@ if __name__ == '__main__':
   model = MMDataParallel(model, device_ids=[0])
 
   # predict bounding boxes and save results to json
-  outputs = single_gpu_4batch_test(model, data_loader, show=False, out_dir=None, show_score_thr=0.3)
+  #outputs = single_gpu_4batch_test(model, data_loader, show=False, out_dir=None, show_score_thr=0.3)
+  outputs = single_gpu_test(model, data_loader, show=False, out_dir=None, show_score_thr=0.3)
   results_json = det2json(dataset, outputs)
-  mmcv.dump(results_json, "results/internimage_eval_fisheye_128.json")
+  mmcv.dump(results_json, "results/internimage_eval_fisheye.json")
 
