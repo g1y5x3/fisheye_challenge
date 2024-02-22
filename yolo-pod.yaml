@@ -11,6 +11,7 @@ spec:
           - key: nvidia.com/gpu.product
             operator: In
             values:
+            - NVIDIA-A10
             - NVIDIA-GeForce-RTX-3090
   volumes:
   - name: git-secret
@@ -22,21 +23,22 @@ spec:
       medium: Memory
   - name: code
     persistentVolumeClaim:
-      claimName: code-vol
+      claimName: fisheye-challenge
 
   containers:
   - name: gpu-container
     image: gitlab-registry.nrp-nautilus.io/yg5d6/yolov8
     command: ["/bin/sh", "-c"]
     args:
-    - cd /workspace/FishEye8k/;
-      mkdir dataset;
-      tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
+    - apt install tmux -y;
       mkdir /root/.ssh/;
       cp /etc/ssh-key/ssh-privatekey /root/.ssh/id_ed25519;
       wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
       git config --global user.name  "Yixiang Gao";
       git config --global user.email "yg5d6@mail.missouri.edu";
+      cd /workspace/FishEye8k/;
+      mkdir dataset;
+      tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
       sleep infinity;
     resources:
       limits:

@@ -25,7 +25,7 @@ spec:
           medium: Memory
       - name: code
         persistentVolumeClaim:
-          claimName: code-vol
+          claimName: fisheye-challenge
 
       containers:
       - name: gpu-container
@@ -41,12 +41,12 @@ spec:
           python -m torch.distributed.run --nproc_per_node 8 yolov8x_train_fisheye.py -devices 8 -epoch 10 -bs 128;
         resources:
           limits:
-            memory: "64G"
-            cpu: "8"
+            memory: "128G"
+            cpu: "16"
             nvidia.com/gpu: "8"
           requests:
-            memory: "64G"
-            cpu: "8"
+            memory: "128G"
+            cpu: "16"
             nvidia.com/gpu: "8"
         volumeMounts:
         - name: dshm

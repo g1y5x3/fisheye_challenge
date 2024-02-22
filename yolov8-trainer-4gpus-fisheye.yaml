@@ -25,7 +25,7 @@ spec:
           medium: Memory
       - name: code
         persistentVolumeClaim:
-          claimName: code-vol
+          claimName: fisheye-challenge
 
       containers:
       - name: gpu-container
@@ -38,7 +38,7 @@ spec:
           wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
           cp -r /workspace/code/fisheye_challenge .;
           cd fisheye_challenge;
-          python -m torch.distributed.run --nproc_per_node 4 yolov8x_train_fisheye.py -devices 4 -epoch 10 -bs 64;
+          python -m torch.distributed.run --nproc_per_node 4 yolov8x_train_fisheye.py -devices 4 -epoch 250 -bs 64;
         resources:
           limits:
             memory: "64G"
