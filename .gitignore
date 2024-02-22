@@ -1,5 +1,6 @@
 runs/
 wandb/
+results/confusion_matrix_normalized.png
 .ipynb_checkpoints/
 
 ops_dcnv3/build
@@ -8,3 +9,4 @@ ops_dcnv3/ops_dcnv3.egg-info
 
 *.pyc
 *.swp
+*.pt
