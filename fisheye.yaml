@@ -9,7 +9,6 @@ val: test/images
 test: # test images (optional)
 
 # Classes
-# classid_fisheye = {0:0, 1:1, 2:2, 3:3, 4:4}   # {0: 'bus', 1: 'motorcycle', 2: 'car', 3: 'person', 4: 'truck'} 
 names:
   0: bus
   1: bike
