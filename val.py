@@ -2,12 +2,12 @@ import torch
 from ultralytics.utils.metrics import ConfusionMatrix, DetMetrics
 from ultralytics.models.yolo.detect.val import DetectionValidator
 
-# modifiedy from
+# modifiedy from ultralytics to make it more framework agnostic
 # https://github.com/ultralytics/ultralytics/blob/main/ultralytics/models/yolo/detect/val.py
-# to make it more framework agnostic
+# 
 # preds [[x, y, x, y, conf, cls], ...]: list of torch.tensors [N, 6]
 # gts   [[x, y, x, y, cls], ...]      : list of torch.tensors [M, 5]
-# NOTE: currently x, y, w, and h are provided as normalized coordinate
+#
 class FisheyeDetectionValidator(DetectionValidator):
   def __init__(self, dataloader=None, save_dir=None, pbar=None, args=None, _callbacks=None):
     super().__init__(dataloader, save_dir, pbar, args, _callbacks)
@@ -19,8 +19,8 @@ class FisheyeDetectionValidator(DetectionValidator):
     self.metrics.names = self.names
     # default: conf=0.25, iou_thres=0.45
     self.confusion_matrix = ConfusionMatrix(nc=self.nc, task="detect")
-    self.seen = 0
     self.stats = dict(tp=[], conf=[], pred_cls=[], target_cls=[])
+    self.seen = 0
 
   # TODO: refactor this
   def update_metrics(self, preds, gts):

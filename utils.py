@@ -4,7 +4,7 @@ from PIL import Image
 from ultralytics.utils import ops
 from ultralytics.utils.plotting import Annotator, Colors
 
-def plot_images(images, cls, bboxes, confs, names, title=None, plot=False):
+def plot_images(images, cls, bboxes, confs, names, title=None, conf_thres=0.25, plot=False):
   # TODO: plot multiple images
   bs = 1
   colors = Colors()
@@ -41,7 +41,7 @@ def plot_images(images, cls, bboxes, confs, names, title=None, plot=False):
           c = classes[j]
           color = colors(c)
           c = names[c] if names else c
-          if labels or conf[j] > 0.25:  # 0.25 conf thresh
+          if labels or conf[j] > conf_thres:
             label = f"{c}" if labels else f"{c} {conf[j]:.1f}"
             annotator.box_label(box, label, color=color, rotated=None)
 
