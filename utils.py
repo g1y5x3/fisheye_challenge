@@ -4,11 +4,14 @@ from PIL import Image
 from ultralytics.utils import ops
 from ultralytics.utils.plotting import Annotator, Colors
 
-def plot_images(images, cls, bboxes, confs, names):
+def plot_images(images, cls, bboxes, confs, names, title=None, plot=False):
+  # TODO: plot multiple images
   bs = 1
   colors = Colors()
   ns = np.ceil(bs**0.5)
   h, w, _ = images.shape 
+  # Not all images have the same dimension, need to resize then before reshaping into a single
+  # collection
   mosaic = np.full((int(ns * h), int(ns * w), 3), 255, dtype=np.uint8)  # init
   i = 0
   x, y = int(w * (i // ns)), int(h * (i % ns))  # block origin
@@ -19,7 +22,7 @@ def plot_images(images, cls, bboxes, confs, names):
   scale = max_size / ns / max(h, w)
   
   # Annotate
-  fs = int((h + w) * ns * 0.005)  # font size
+  fs = int((h + w) * ns * 0.01)  # font size
   annotator = Annotator(images, line_width=round(fs / 10), font_size=fs, pil=True, example=None)
   for i in range(bs):
     x, y = int(w * (i // ns)), int(h * (i % ns))  # block origin
@@ -41,7 +44,10 @@ def plot_images(images, cls, bboxes, confs, names):
           if labels or conf[j] > 0.25:  # 0.25 conf thresh
             label = f"{c}" if labels else f"{c} {conf[j]:.1f}"
             annotator.box_label(box, label, color=color, rotated=None)
-  annotator.show()
+
+  if plot: annotator.show()
+  
+  return annotator.result()
 
 def bounding_boxes(img, boxes_predict, boxes_gt, class_name, classid_coco, classid_fisheye):
   return wandb.Image(
