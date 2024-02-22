@@ -12,6 +12,6 @@ if __name__ == "__main__":
   args = parser.parse_args()
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
-  train_args = dict(model="yolov8x.pt", data="fisheye.yaml", device=device, epochs=args.epoch, batch=args.bs, imgsz=640)
+  train_args = dict(model="checkpoints/yolov8x.pt", data="fisheye.yaml", device=device, epochs=args.epoch, batch=args.bs, imgsz=640)
   trainer = DetectionTrainer(overrides=train_args)
   trainer.train()

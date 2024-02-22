@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from ultralytics import YOLO
 from ultralytics.utils import ops
-from utils import bounding_boxes 
-from val import FisheyeDetectionValidator
+from utils import bounding_boxes, FisheyeDetectionValidator
 
 WANDB = os.getenv("WANDB", False)
 NAME  = os.getenv("NAME", "yolov8x_eval" )
@@ -16,7 +15,8 @@ if __name__ == "__main__":
   parser.add_argument('-iou',  type=float, default=0.7,  help="number of workers")
   args = parser.parse_args()
 
-  config = {"model/conf": args.conf,
+  config = {"epochs": 0,
+            "model/conf": args.conf,
             "model/iou" : args.iou}
 
   if WANDB:
