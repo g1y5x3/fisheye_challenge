@@ -35,13 +35,14 @@ def det2json(dataset, results):
   json_results = []
   for idx in range(len(results)):
     img_id = dataset.img_ids[idx]
+    info = dataset.coco.load_imgs([img_id])[0]
     result = results[idx]
     for label in range(len(result)):
       if label in [0,2,3,5,7]:
         bboxes = result[label]
         for i in range(bboxes.shape[0]):
           data = dict()
-          data['image_id'] = img_id
+          data['image_id'] = info['file_name']
           data['bbox'] = dataset.xyxy2xywh(bboxes[i])
           data['score'] = float(bboxes[i][4])
           data['category_id'] = label
