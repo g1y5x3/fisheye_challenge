@@ -101,7 +101,8 @@ def plot_images(images, cls, bboxes, confs, names, title=None, conf_thres=0.25, 
   
   return annotator.result()
 
-def bounding_boxes(img, boxes_predict, boxes_gt, class_name, classid_coco, classid_fisheye):
+def bounding_boxes(img, boxes_predict, boxes_gt, class_name):
+  
   return wandb.Image(
            img,
            boxes={

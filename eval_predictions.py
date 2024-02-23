@@ -1,8 +1,7 @@
-import io, os, cv2, json, torch, wandb, argparse
+import cv2, json, torch, wandb, argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from ultralytics import YOLO
 from ultralytics.utils import ops
 from utils import bounding_boxes, FisheyeDetectionValidator
 
@@ -40,24 +39,34 @@ if __name__ == "__main__":
   pred_dir = "results/internimage_eval_fisheye.json"
   with open(pred_dir) as f: preds = json.load(f)
 
-  for img in image_list:
-    print(img)
+  for img_name in image_list:
+    print(img_name)
     # get ground truth
-    img_id = [gt["id"] for gt in gt_img if gt["file_name"] == img]
+    img_id = [gt["id"] for gt in gt_img if gt["file_name"] == img_name]
     bboxes = np.array([gt["bbox"] for gt in gt_ann if gt["image_id"] == img_id[0]])
     bboxes = ops.ltwh2xyxy(bboxes)
     cls = np.array([gt["category_id"] for gt in gt_ann if gt["image_id"] == img_id[0]])
-    gt_array = torch.tensor(np.concatenate((bboxes, cls[:, np.newaxis]), axis=1))
+    gt_array = np.concatenate((bboxes, cls[:, np.newaxis]), axis=1)
+    #gt_array = torch.tensor(np.concatenate((bboxes, cls[:, np.newaxis]), axis=1))
     
     # get predictions
-    bboxes = np.array([pred["bbox"] for pred in preds if pred["image_id"] == img])
+    bboxes = np.array([pred["bbox"] for pred in preds if pred["image_id"] == img_name])
     bboxes = ops.ltwh2xyxy(bboxes)
-    confs = np.array([pred["score"] for pred in preds if pred["image_id"] == img])
+    confs = np.array([pred["score"] for pred in preds if pred["image_id"] == img_name])
     cls_convert = {0:3, 2:2, 3:1, 5:0, 7:4}  # only need this with raw model trained with coco
-    cls = np.array([cls_convert[pred["category_id"]] for pred in preds if pred["image_id"] == img])
-    pred_array = torch.tensor(np.concatenate((bboxes, confs[:, np.newaxis], cls[:, np.newaxis]), axis=1))
+    cls = np.array([cls_convert[pred["category_id"]] for pred in preds if pred["image_id"] == img_name])
+    pred_array = np.concatenate((bboxes, confs[:, np.newaxis], cls[:, np.newaxis]), axis=1)
+    #pred_array = torch.tensor(np.concatenate((bboxes, confs[:, np.newaxis], cls[:, np.newaxis]), axis=1))
 
-    fisheye_eval.update_metrics([pred_array], [gt_array])
+    print(gt_array)
+    print(pred_array)
+
+    if WANDB:
+      img = cv2.imread(data_dir + img_name) 
+      box_img = bounding_boxes(img, pred_array.tolist(), gt_array.tolist(), class_name)
+      table.add_data(img_name, box_img)
+
+    fisheye_eval.update_metrics([torch.tensor(pred_array)], [torch.tensor(gt_array)])
 
   print(fisheye_eval.confusion_matrix.matrix)
   fisheye_eval.confusion_matrix.plot(save_dir="results", names=tuple(class_name.values()))
@@ -106,10 +115,6 @@ if __name__ == "__main__":
   #    pred = torch.cat((result.boxes.xyxyn.cpu(), result.boxes.conf.cpu().unsqueeze(1), cls.unsqueeze(1)), dim=1)
   #    preds.append(pred)
 
-  #    if WANDB:
-  #      box_img = bounding_boxes(result.orig_img, result.boxes, 
-  #                               boxes_gt_string, class_name, classid_coco, classid_fisheye)
-  #      table.add_data(img_id, box_img)
 
   #  fisheye_eval.update_metrics(preds, gts)
 
