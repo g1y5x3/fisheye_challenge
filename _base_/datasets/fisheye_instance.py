@@ -1,5 +1,6 @@
 # dataset settings
 dataset_type = 'CocoDataset'
+classes = ("Bus", "Bike", "Car", "Pedestrian", "Truck")
 data_root = '/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
@@ -33,16 +34,19 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
+        classes=classes,
         ann_file=data_root + 'train/train.json',
         img_prefix=data_root + 'train/images/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
+        classes=classes,
         ann_file=data_root + 'test/test.json',
         img_prefix=data_root + 'test/images/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
+        classes=classes,
         ann_file=data_root + 'test/test.json',
         img_prefix=data_root + 'test/images/',
         pipeline=test_pipeline))
