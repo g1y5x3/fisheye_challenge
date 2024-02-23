@@ -11,8 +11,9 @@ spec:
           - key: nvidia.com/gpu.product
             operator: In
             values:
-            - NVIDIA-A10
-            - NVIDIA-GeForce-RTX-3090
+            - NVIDIA-A40	
+            - NVIDIA-RTX-A6000	
+            - Quadro-RTX-8000
   volumes:
   - name: git-secret
     secret:
@@ -21,9 +22,9 @@ spec:
   - name: dshm
     emptyDir:
       medium: Memory
-  # - name: code
-  #   persistentVolumeClaim:
-  #     claimName: code-vol
+  - name: code
+    persistentVolumeClaim:
+      claimName: fisheye-challenge
 
   containers:
   - name: gpu-container
@@ -44,16 +45,16 @@ spec:
       limits:
         memory: "32G"
         cpu: "8"
-        nvidia.com/gpu: "1"
+        nvidia.com/gpu: "2"
       requests:
         memory: "32G"
         cpu: "8"
-        nvidia.com/gpu: "1"
+        nvidia.com/gpu: "2"
     volumeMounts:
     - name: git-secret
       readOnly: true
       mountPath: /etc/ssh-key
     - name: dshm
       mountPath: /dev/shm
-    # - name: code
-    #   mountPath: /workspace/code
+    - name: code
+      mountPath: /workspace/code

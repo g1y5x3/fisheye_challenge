@@ -12,6 +12,7 @@ RUN apt-get update -y && \
     pip install ultralytics && \
     pip install notebook && \
     pip install ipywidgets && \
+    pip install yapf==0.40.1 && \
     pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113  -f https://download.pytorch.org/whl/torch_stable.html && \
     pip install -U openmim && \
     mim install mmcv-full==1.5.0 && \
