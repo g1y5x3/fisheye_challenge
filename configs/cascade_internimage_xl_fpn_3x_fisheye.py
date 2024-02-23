@@ -9,7 +9,7 @@ _base_ = [
   '../_base_/schedules/schedule_3x.py',
   '../_base_/default_runtime.py'
 ]
-pretrained = 'https://huggingface.co/OpenGVLab/InternImage/resolve/main/internimage_xl_22k_192to384.pth'
+pretrained = 'https://huggingface.co/OpenGVLab/InternImage/resolve/main/cascade_internimage_xl_fpn_3x_coco.pth'
 model = dict(
   backbone=dict(
     _delete_=True,
@@ -96,7 +96,7 @@ img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375],
 # augmentation strategy originates from DETR / Sparse RCNN
 train_pipeline = [
   dict(type='LoadImageFromFile'),
-  dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+  dict(type='LoadAnnotations', with_bbox=True, with_mask=False),
   dict(type='RandomFlip', flip_ratio=0.5),
   dict(type='AutoAugment',
     policies=[
@@ -130,10 +130,10 @@ train_pipeline = [
   dict(type='Normalize', **img_norm_cfg),
   dict(type='Pad', size_divisor=32),
   dict(type='DefaultFormatBundle'),
-  dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
+  dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
 # we use 4 nodes to train this model, with a total batch size of 64
-data = dict(samples_per_gpu=32, train=dict(pipeline=train_pipeline))
+data = dict(samples_per_gpu=2, train=dict(pipeline=train_pipeline))
 # optimizer
 optimizer = dict(
   _delete_=True, type='AdamW', lr=0.0001 * 2, weight_decay=0.05,
