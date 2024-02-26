@@ -6,11 +6,12 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 
 """
 import json, wandb, argparse
-from utils import get_image_id
 from ultralytics.utils import LOGGER
 from ultralytics.models.yolo.detect.train import DetectionTrainer
+from utils import get_image_id
 
-# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to compute benchmarks # with cocoapi
+# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to compute benchmarks
+# with cocoapi
 def save_eval_json_with_id(validator, benchmark=True):
   if not validator.training:
     pred_dir = "results/yolo_predictions.json"
@@ -21,6 +22,8 @@ def save_eval_json_with_id(validator, benchmark=True):
       LOGGER.info(f"Saving {pred_dir}...")
       json.dump(validator.jdict, f)
 
+    art = wandb.Artifact(type="results", name=f"run_{wandb.run.id}_model")
+
     if benchmark:
       from pycocotools.coco import COCO
       from pycocotools.cocoeval import COCOeval
@@ -29,9 +32,14 @@ def save_eval_json_with_id(validator, benchmark=True):
       anno = COCO(anno_dir)
       pred = anno.loadRes(pred_dir)
       fisheye_eval = COCOeval(anno, pred, "bbox")
+      print(fisheye_eval.params.areaRng)
       fisheye_eval.evaluate()
       fisheye_eval.accumulate()
       fisheye_eval.summarize()
+        
+      # log the mAP50-95 standard from the challenge
+      wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.epoch+1)
+
 
 
 if __name__ == "__main__":
