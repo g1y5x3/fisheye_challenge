@@ -7,22 +7,32 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 """
 import json, wandb, argparse
 from utils import get_image_id
+from ultralytics.utils import LOGGER
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 
-# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to compute benchmarks
-# with cocoapi
-def save_eval_json_with_id(validator):
+# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to compute benchmarks # with cocoapi
+def save_eval_json_with_id(validator, benchmark=True):
   if not validator.training:
     pred_dir = "results/yolo_predictions.json"
-    print("THIS IS VALIDATOR CALLBACK")
-    print(validator.jdict[:10])
     for pred in validator.jdict:
       pred["image_id"] = get_image_id(pred["image_id"])
 
-    print("AFTER CONVERSION")
-    print(validator.jdict[:10])
     with open(pred_dir, "w") as f:
+      LOGGER.info(f"Saving {pred_dir}...")
       json.dump(validator.jdict, f)
+
+    if benchmark:
+      from pycocotools.coco import COCO
+      from pycocotools.cocoeval import COCOeval
+
+      anno_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/test.json"
+      anno = COCO(anno_dir)
+      pred = anno.loadRes(pred_dir)
+      fisheye_eval = COCOeval(anno, pred, "bbox")
+      fisheye_eval.evaluate()
+      fisheye_eval.accumulate()
+      fisheye_eval.summarize()
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
@@ -43,15 +53,3 @@ if __name__ == "__main__":
   trainer.add_callback("on_val_end", save_eval_json_with_id)
   trainer.train()
 
-  ## convert the "image_id" from name to id for benchmarks
-  #pred_dir = args.project + "/" + args.name + "/" +  "predictions.json"
-  #print(pred_dir)
-
-  #with open(pred_dir) as f:
-  #  predictions = json.load(f)
-
-  #for pred in predictions:
-  #  pred["image_id"] = get_image_id(pred["image_id"])
-
-  #with open(pred_dir, "w") as f:
-  #  json.dump(predictions, f)
