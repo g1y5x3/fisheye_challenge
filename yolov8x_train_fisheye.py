@@ -20,19 +20,19 @@ if __name__ == "__main__":
   train_args = dict(model="checkpoints/yolov8x.pt", data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=640,
                     project=args.project, name=args.name,
-                    val=False, save_json=True)
+                    val=True, save_json=True)
   trainer = DetectionTrainer(overrides=train_args)
   trainer.train()
 
-  # convert the "image_id" from name to id for benchmarks
-  pred_dir = args.project + "/" + args.name + "/" +  "predictions.json"
-  print(pred_dir)
+  ## convert the "image_id" from name to id for benchmarks
+  #pred_dir = args.project + "/" + args.name + "/" +  "predictions.json"
+  #print(pred_dir)
 
-  with open(pred_dir) as f:
-    predictions = json.load(f)
+  #with open(pred_dir) as f:
+  #  predictions = json.load(f)
 
-  for pred in predictions:
-    pred["image_id"] = get_image_Id(pred["image_id"])
+  #for pred in predictions:
+  #  pred["image_id"] = get_image_Id(pred["image_id"])
 
-  with open(pred_dir, "w") as f:
-    json.dump(predictions, f)
+  #with open(pred_dir, "w") as f:
+  #  json.dump(predictions, f)
