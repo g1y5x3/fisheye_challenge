@@ -6,14 +6,23 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 
 """
 import json, wandb, argparse
-from utils import get_image_Id
+from utils import get_image_id
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 
 # the default json was saved with "file_name" instead, saving as "image_id" makes it easier to compute benchmarks
 # with cocoapi
 def save_eval_json_with_id(validator):
   if not validator.training:
+    pred_dir = "results/yolo_predictions.json"
     print("THIS IS VALIDATOR CALLBACK")
+    print(validator.jdict[:10])
+    for pred in validator.jdict:
+      pred["image_id"] = get_image_id(pred["image_id"])
+
+    print("AFTER CONVERSION")
+    print(validator.jdict[:10])
+    with open(pred_dir, "w") as f:
+      json.dump(validator.jdict, f)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
@@ -42,7 +51,7 @@ if __name__ == "__main__":
   #  predictions = json.load(f)
 
   #for pred in predictions:
-  #  pred["image_id"] = get_image_Id(pred["image_id"])
+  #  pred["image_id"] = get_image_id(pred["image_id"])
 
   #with open(pred_dir, "w") as f:
   #  json.dump(predictions, f)

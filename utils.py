@@ -141,7 +141,7 @@ def bounding_boxes(img, boxes_predict, boxes_gt, class_name):
            },
         ) 
 
-def get_image_Id(img_name):
+def get_image_id(img_name):
   #img_name = img_name.split('.png')[0]
   sceneList = ['M', 'A', 'E', 'N']
   cameraIndx = int(img_name.split('_')[0].split('camera')[1])
