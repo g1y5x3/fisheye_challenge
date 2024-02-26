@@ -1,10 +1,19 @@
 """
-For distributed training, run the following command
+For distributed training, run the following example command. 
+Making sure --nproc_per_node and -devices has the same param.
+
 python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 1 -bs 32
+
 """
 import json, wandb, argparse
 from utils import get_image_Id
 from ultralytics.models.yolo.detect.train import DetectionTrainer
+
+# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to compute benchmarks
+# with cocoapi
+def save_eval_json_with_id(validator):
+  if not validator.training:
+    print("THIS IS VALIDATOR CALLBACK")
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
@@ -22,6 +31,7 @@ if __name__ == "__main__":
                     project=args.project, name=args.name,
                     val=True, save_json=True)
   trainer = DetectionTrainer(overrides=train_args)
+  trainer.add_callback("on_val_end", save_eval_json_with_id)
   trainer.train()
 
   ## convert the "image_id" from name to id for benchmarks
