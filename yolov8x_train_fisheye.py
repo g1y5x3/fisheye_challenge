@@ -54,7 +54,12 @@ if __name__ == "__main__":
   train_args = dict(model="checkpoints/yolov8x.pt", data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=640,
                     project=args.project, name=args.name,
-                    val=True, save_json=True)
+                    val=True, save_json=True,
+                    exist_ok=True, # overwrite the existing dir
+                    close_mosaic=0, # completely disable mosaic
+                    degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
+                    perspective=0.0, flipud=0.0, fliplr=0.5, 
+                    mosaic=0.0, mixup=0.0)
 
   trainer = DetectionTrainer(overrides=train_args)
   trainer.add_callback("on_val_end", save_eval_json_with_id)
