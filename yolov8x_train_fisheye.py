@@ -82,7 +82,7 @@ if __name__ == "__main__":
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
   train_args = dict(model="checkpoints/yolov8x.pt", data="fisheye.yaml",
-                    device=device, epochs=args.epoch, batch=args.bs, imgsz=640,
+                    device=device, epochs=args.epoch, batch=args.bs, imgsz=1280,
                     project=args.project, name=args.name,
                     val=True, save_json=True,
                     exist_ok=True, # overwrite the existing dir
