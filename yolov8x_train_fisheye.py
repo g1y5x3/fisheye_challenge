@@ -6,15 +6,16 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 
 """
 import json, wandb, argparse
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
 from ultralytics.utils import LOGGER
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from utils import get_image_id
 
-# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to compute benchmarks
-# with cocoapi
-def save_eval_json_with_id(validator, benchmark=True):
+# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to 
+# compute benchmarks # with cocoapi
+def save_eval_json_with_id(validator):
   if not validator.training:
-    print(f"TOTAL EPOCHS!!! {validator.args.epochs}")
     pred_dir = "results/yolo_predictions.json"
     for pred in validator.jdict:
       pred["image_id"] = get_image_id(pred["image_id"])
@@ -23,25 +24,21 @@ def save_eval_json_with_id(validator, benchmark=True):
       LOGGER.info(f"Saving {pred_dir}...")
       json.dump(validator.jdict, f)
 
-    artifact = wandb.Artifact(type="results", name=f"run_{wandb.run.id}_model")
+    artifact = wandb.Artifact(type="results", name=f"run_{wandb.run.id}_results")
     artifact.add_file(local_path=pred_dir)
     wandb.run.log_artifact(artifact)
 
-    if benchmark:
-      from pycocotools.coco import COCO
-      from pycocotools.cocoeval import COCOeval
-
-      anno_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/test.json"
-      anno = COCO(anno_dir)
-      pred = anno.loadRes(pred_dir)
-      fisheye_eval = COCOeval(anno, pred, "bbox")
-      print(fisheye_eval.params.areaRng)
-      fisheye_eval.evaluate()
-      fisheye_eval.accumulate()
-      fisheye_eval.summarize()
-        
-      # log the mAP50-95 standard from the challenge
-      wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.args.epochs)
+    anno_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/test.json"
+    anno = COCO(anno_dir)
+    pred = anno.loadRes(pred_dir)
+    fisheye_eval = COCOeval(anno, pred, "bbox")
+    print(fisheye_eval.params.areaRng)
+    fisheye_eval.evaluate()
+    fisheye_eval.accumulate()
+    fisheye_eval.summarize()
+      
+    # log the mAP50-95 standard from the challenge
+    wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.args.epochs)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
@@ -58,6 +55,7 @@ if __name__ == "__main__":
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=640,
                     project=args.project, name=args.name,
                     val=True, save_json=True)
+
   trainer = DetectionTrainer(overrides=train_args)
   trainer.add_callback("on_val_end", save_eval_json_with_id)
   trainer.train()
