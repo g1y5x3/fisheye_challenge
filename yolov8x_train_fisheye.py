@@ -14,6 +14,7 @@ from utils import get_image_id
 # with cocoapi
 def save_eval_json_with_id(validator, benchmark=True):
   if not validator.training:
+    print(f"TOTAL EPOCHS!!! {validator.args.epochs}")
     pred_dir = "results/yolo_predictions.json"
     for pred in validator.jdict:
       pred["image_id"] = get_image_id(pred["image_id"])
@@ -22,7 +23,9 @@ def save_eval_json_with_id(validator, benchmark=True):
       LOGGER.info(f"Saving {pred_dir}...")
       json.dump(validator.jdict, f)
 
-    art = wandb.Artifact(type="results", name=f"run_{wandb.run.id}_model")
+    artifact = wandb.Artifact(type="results", name=f"run_{wandb.run.id}_model")
+    artifact.add_file(local_path=pred_dir)
+    wandb.run.log_artifact(artifact)
 
     if benchmark:
       from pycocotools.coco import COCO
@@ -38,9 +41,7 @@ def save_eval_json_with_id(validator, benchmark=True):
       fisheye_eval.summarize()
         
       # log the mAP50-95 standard from the challenge
-      wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.epoch+1)
-
-
+      wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.args.epochs)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
