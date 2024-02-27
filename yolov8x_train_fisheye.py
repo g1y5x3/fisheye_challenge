@@ -8,9 +8,36 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 import json, wandb, argparse
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
-from ultralytics.utils import LOGGER
+from ultralytics.utils import LOGGER, colorstr
+from ultralytics.data.augment import Albumentations
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from utils import get_image_id
+def __init__(self, p=1.0):
+  """Initialize the transform object for YOLO bbox formatted params."""
+  self.p = p
+  self.transform = None
+  prefix = colorstr("albumentations: ")
+  try:
+    import albumentations as A
+
+    # check_version(A.__version__, "1.0.3", hard=True)  # version requirement
+
+    # Transforms
+    T = [
+      A.ToGray(p=0.01),
+      A.CLAHE(p=0.01),
+      A.RandomBrightnessContrast(p=0.0),
+      A.RandomGamma(p=0.0),
+      A.ImageCompression(quality_lower=75, p=0.0),
+    ]
+    self.transform = A.Compose(T, bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]))
+
+    LOGGER.info(prefix + ", ".join(f"{x}".replace("always_apply=False, ", "") for x in T if x.p))
+  except ImportError:  # package not installed, skip
+    pass
+  except Exception as e:
+    LOGGER.info(f"{prefix}{e}")
+
 
 # the default json was saved with "file_name" instead, saving as "image_id" makes it easier to 
 # compute benchmarks # with cocoapi
@@ -41,6 +68,9 @@ def save_eval_json_with_id(validator):
     wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.args.epochs)
 
 if __name__ == "__main__":
+
+  Albumentations.__init__ = __init__
+
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
   parser.add_argument('-devices', type=int, default=1,  help="batch size")
   parser.add_argument('-epoch',   type=int, default=1,  help="number of epoch")
