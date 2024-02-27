@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata: 
-  name: yolov8-pod
+  name: yolo-pod
 spec:
   affinity:
     nodeAffinity:
@@ -11,6 +11,10 @@ spec:
           - key: nvidia.com/gpu.product
             operator: In
             values:
+            - NVIDIA-A100-SXM4-80GB
+            - NVIDIA-RTX-A6000
+            - NVIDIA-RTX-A5000
+            - NVIDIA-A40
             - NVIDIA-A10
             - NVIDIA-GeForce-RTX-3090
   volumes:
@@ -36,6 +40,11 @@ spec:
       wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
       git config --global user.name  "Yixiang Gao";
       git config --global user.email "yg5d6@mail.missouri.edu";
+      pip install cython;
+      cp -r /workspace/code/cocoapi /workspace/;
+      cd /workspace/code/cocoapi/PythonAPI;
+      make;
+      pip install -e .;
       cd /workspace/FishEye8k/;
       mkdir dataset;
       tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
@@ -44,11 +53,11 @@ spec:
       limits:
         memory: "32G"
         cpu: "8"
-        nvidia.com/gpu: "1"
+        nvidia.com/gpu: "2"
       requests:
         memory: "32G"
         cpu: "8"
-        nvidia.com/gpu: "1"
+        nvidia.com/gpu: "2"
     volumeMounts:
     - name: git-secret
       readOnly: true
