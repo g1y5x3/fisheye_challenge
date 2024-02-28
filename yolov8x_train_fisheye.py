@@ -83,10 +83,11 @@ if __name__ == "__main__":
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
   train_args = dict(model="checkpoints/yolov8x.pt", data="fisheye.yaml",
+                    fraction = 0.1, # dataset fraction to train on, set to 0.1 for debugging purpose
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=1280,
                     project=args.project, name=args.name,
                     val=True, save_json=True,
-                    exist_ok=True, # overwrite the existing dir
+                    exist_ok=True,  # overwrite the existing dir
                     close_mosaic=0, # completely disable mosaic
                     degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
