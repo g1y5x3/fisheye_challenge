@@ -216,6 +216,7 @@ def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
 if __name__ == "__main__":
 
+  # monkey patches
   Albumentations.__init__ = albumentation_init
   tasks.parse_model = parse_dcn_model
 
