@@ -164,6 +164,7 @@ if __name__ == "__main__":
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     project=args.project, name=args.name,
                     val=True, save_json=True, exist_ok=True,
+                    box=7.5, cls=0.125, dfl=3.0,
                     close_mosaic=0, # completely disable mosaic
                     degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
