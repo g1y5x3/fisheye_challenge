@@ -5,13 +5,15 @@ Making sure --nproc_per_node and -devices has the same param.
 python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 1 -bs 32
 
 """
-import json, wandb, argparse
+import torch, json, wandb, argparse
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
-from ultralytics.nn.task import BaseModel
+from ultralytics.nn.modules import Detect, Segment, Pose, OBB
+from ultralytics.nn.tasks import BaseModel
 from ultralytics.utils import LOGGER, colorstr
 from ultralytics.data.augment import Albumentations
 from ultralytics.models.yolo.detect.train import DetectionTrainer
+
 from utils import get_image_id
 
 # the default json was saved with "file_name" instead, saving as "image_id" makes it easier to 
@@ -148,18 +150,18 @@ if __name__ == "__main__":
   Albumentations.__init__ = __init__
 
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
-  parser.add_argument('-devices', type=int, default=1,  help="batch size")
-  parser.add_argument('-epoch',   type=int, default=1,  help="number of epoch")
-  parser.add_argument('-bs',      type=int, default=16, help="number of batches")
-  parser.add_argument('-project', type=str, default="fisheye-challenge", help="project name")
-  parser.add_argument('-name',    type=str, default="yolov8x", help="run name")
+  parser.add_argument('-devices', type=int,   default=1,   help="batch size")
+  parser.add_argument('-frac',    type=float, default=1.0, help="fraction of the data being used")
+  parser.add_argument('-epoch',   type=int,   default=1,   help="number of epoch")
+  parser.add_argument('-bs',      type=int,   default=16,  help="number of batches")
+  parser.add_argument('-project', type=str,   default="fisheye-challenge", help="project name")
+  parser.add_argument('-name',    type=str,   default="yolov8x", help="run name")
   args = parser.parse_args()
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
-  train_args = dict(fraction = 0.1, # dataset fraction to train on, set to 0.1 for debugging purpose
-                    model="checkpoints/yolov8x.pt", data="fisheye.yaml",
-                    device=device, epochs=args.epoch, batch=args.bs, imgsz=1280,
+  train_args = dict(model="checkpoints/yolov8x.pt", data="fisheye.yaml",
+                    device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     project=args.project, name=args.name,
                     val=True, save_json=True, exist_ok=True,
                     close_mosaic=0, # completely disable mosaic
