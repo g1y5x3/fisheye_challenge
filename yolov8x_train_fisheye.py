@@ -12,6 +12,8 @@ from ultralytics.utils import LOGGER, colorstr
 from ultralytics.data.augment import Albumentations
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from utils import get_image_id
+
+# Just to bypass the unwanted albumentation
 def __init__(self, p=1.0):
   """Initialize the transform object for YOLO bbox formatted params."""
   self.p = p
@@ -26,9 +28,8 @@ def __init__(self, p=1.0):
     T = [
       A.ToGray(p=0.01),
       A.CLAHE(p=0.01),
-      A.RandomBrightnessContrast(p=0.0),
-      A.RandomGamma(p=0.0),
-      A.ImageCompression(quality_lower=75, p=0.0),
+      A.RandomBrightnessContrast(p=0.01),
+      A.RandomGamma(p=0.01),
     ]
     self.transform = A.Compose(T, bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]))
 
