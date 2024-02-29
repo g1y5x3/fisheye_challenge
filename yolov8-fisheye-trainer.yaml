@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata: 
-  name: yolov8-trainer-8gpus-fisheye
+  name: yolov8-fisheye-trainer-2gpus
 spec:
   ttlSecondsAfterFinished: 100
   template:
@@ -15,10 +15,6 @@ spec:
                 operator: In
                 values:
                 - NVIDIA-A100-SXM4-80GB
-                - NVIDIA-RTX-A6000
-                - NVIDIA-RTX-A5000
-                - NVIDIA-A40
-                - NVIDIA-A10
       volumes:
       - name: dshm
         emptyDir:
@@ -31,23 +27,32 @@ spec:
       - name: gpu-container
         image: gitlab-registry.nrp-nautilus.io/yg5d6/yolov8
         command: ["/bin/sh", "-c"]
+        # single gpu
+        # python yolov8x_train_fisheye.py -devices 1 -epoch 250 -bs 16 -name yolov8x_full_train;
+        # multigpu - make sure requesting at least 64G of RAM
+        # python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 250 -bs 32 -name yolov8x_full_train;
         args:
-        - cd /workspace/FishEye8k/;
+        - pip install cython;
+          cp -r /workspace/code/cocoapi /workspace/;
+          cd /workspace/code/cocoapi/PythonAPI;
+          make;
+          pip install -e .;
+          cd /workspace/FishEye8k/;
           mkdir dataset;
           tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
           wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
           cp -r /workspace/code/fisheye_challenge .;
           cd fisheye_challenge;
-          python -m torch.distributed.run --nproc_per_node 8 yolov8x_train_fisheye.py -devices 8 -epoch 10 -bs 128;
+          python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 250 -bs 32 -name yolov8x_full_train;
         resources:
           limits:
-            memory: "128G"
-            cpu: "16"
-            nvidia.com/gpu: "8"
+            memory: "64G"
+            cpu: "8"
+            nvidia.com/gpu: "2"
           requests:
-            memory: "128G"
-            cpu: "16"
-            nvidia.com/gpu: "8"
+            memory: "64G"
+            cpu: "8"
+            nvidia.com/gpu: "2"
         volumeMounts:
         - name: dshm
           mountPath: /dev/shm
