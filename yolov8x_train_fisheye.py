@@ -12,7 +12,7 @@ from utils import get_image_id
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from ultralytics.utils import LOGGER, RANK, colorstr
-from ultralytics.nn.tasks import DetectionModel
+from ultralytics.nn.tasks import DetectionModel, attempt_load_one_weight
 from ultralytics.data.augment import Albumentations
 from ultralytics.utils.torch_utils import make_divisible
 from ultralytics.models.yolo.detect.train import DetectionTrainer
@@ -85,6 +85,7 @@ def save_eval_json_with_id(validator):
 # monkey patching to bypass the unwanted code without modifying the library
 def albumentation_init(self, p=1.0):
   """Initialize the transform object for YOLO bbox formatted params."""
+  print("MONKEY PATCHED 1!!!")
   self.p = p
   self.transform = None
   prefix = colorstr("albumentations: ")
@@ -110,7 +111,8 @@ def albumentation_init(self, p=1.0):
 
 def load_model_custom(self, cfg=None, weights=None, verbose=True):
   """Return a YOLO detection model."""
-  print("THIS IS ALSO MONKEY PATCHED!!!")
+  print("MONKEY PATCHED 2!!!")
+  weights, _ = attempt_load_one_weight("checkpoints/yolov8x.pt") 
   model = DetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
   if weights:
     model.load(weights)
@@ -120,8 +122,7 @@ def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
   """Parse a YOLO model.yaml dictionary into a PyTorch model."""
   import ast
 
-  print("THIS IS MONKEY PATCHED!!!")
-
+  print("MONKEY PATCHED 3!!!")
   max_channels = float("inf")
   nc, act, scales = (d.get(x) for x in ("nc", "activation", "scales"))
   depth, width, kpt_shape = (d.get(x, 1.0) for x in ("depth_multiple", "width_multiple", "kpt_shape"))
