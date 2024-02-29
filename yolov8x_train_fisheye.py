@@ -8,11 +8,14 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 import torch, json, wandb, contextlib, argparse
 import torch.nn as nn
 import ultralytics.nn.tasks as tasks
+from utils import get_image_id
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
-from ultralytics.utils import LOGGER, colorstr
+from ultralytics.utils import LOGGER, RANK, colorstr
+from ultralytics.nn.tasks import DetectionModel
 from ultralytics.data.augment import Albumentations
 from ultralytics.utils.torch_utils import make_divisible
+from ultralytics.models.yolo.detect.train import DetectionTrainer
 from ultralytics.nn.modules import (
     AIFI,
     C1,
@@ -50,9 +53,6 @@ from ultralytics.nn.modules import (
     Segment,
     WorldDetect,
 )
-from ultralytics.models.yolo.detect.train import DetectionTrainer
-
-from utils import get_image_id
 
 # the default json was saved with "file_name" instead, saving as "image_id" makes it easier to 
 # compute benchmarks # with cocoapi
@@ -108,11 +108,20 @@ def albumentation_init(self, p=1.0):
   except Exception as e:
     LOGGER.info(f"{prefix}{e}")
 
+def load_model_custom(self, cfg=None, weights=None, verbose=True):
+  """Return a YOLO detection model."""
+  print("THIS IS ALSO MONKEY PATCHED!!!")
+  model = DetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
+  if weights:
+    model.load(weights)
+  return model
+
 def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
   """Parse a YOLO model.yaml dictionary into a PyTorch model."""
   import ast
 
-  # Args
+  print("THIS IS MONKEY PATCHED!!!")
+
   max_channels = float("inf")
   nc, act, scales = (d.get(x) for x in ("nc", "activation", "scales"))
   depth, width, kpt_shape = (d.get(x, 1.0) for x in ("depth_multiple", "width_multiple", "kpt_shape"))
@@ -123,7 +132,6 @@ def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
       LOGGER.warning(f"WARNING ⚠️ no model scale passed. Assuming scale='{scale}'.")
     depth, width, max_channels = scales[scale]
 
-  print("THIS IS MONKEY PATCHED!!!")
   if act:
     Conv.default_act = eval(act)  # redefine default activation, i.e. Conv.default_act = nn.SiLU()
     if verbose:
@@ -218,6 +226,7 @@ if __name__ == "__main__":
 
   # monkey patches
   Albumentations.__init__ = albumentation_init
+  DetectionTrainer.get_model = load_model_custom
   tasks.parse_model = parse_dcn_model
 
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
