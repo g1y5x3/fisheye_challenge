@@ -13,9 +13,12 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from ultralytics.utils import LOGGER, RANK, colorstr
 from ultralytics.nn.tasks import DetectionModel, attempt_load_one_weight
+from ultralytics.nn.modules.conv import autopad
 from ultralytics.data.augment import Albumentations
 from ultralytics.utils.torch_utils import make_divisible
 from ultralytics.models.yolo.detect.train import DetectionTrainer
+
+# TODO: maybe try some different module
 from ultralytics.nn.modules import (
     AIFI,
     C1,
@@ -112,9 +115,36 @@ def load_model_custom(self, cfg=None, weights=None, verbose=True):
   """Return a YOLO detection model."""
   weights, _ = attempt_load_one_weight("checkpoints/yolov8x.pt") 
   model = DetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
+  # print model state dictionaries
+  for param_tensor in model.state_dict():
+    print(param_tensor, "\t", model.state_dict()[param_tensor].size())
+
   if weights:
     model.load(weights)
   return model
+
+class DeformConv(nn.Module):
+  from torchvision.ops import deform_conv2d
+
+  default_act = nn.SiLU()  # default activation
+
+  def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+    """Initialize Conv layer with given arguments including activation."""
+    super().__init__()
+  
+    #self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+    self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
+    print(self.conv)
+    self.bn = nn.BatchNorm2d(c2)
+    self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+  def forward(self, x):
+    print(f"forward {x.shape}")
+    return self.act(self.bn(self.conv(x)))
+
+  def forward_fuse(self, x):
+    print(f"forward_fuse {x.shape}")
+    return self.act(self.conv(x))
 
 def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
   """Parse a YOLO model.yaml dictionary into a PyTorch model."""
@@ -168,6 +198,7 @@ def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
       C3Ghost,
       nn.ConvTranspose2d,
       DWConvTranspose2d,
+	  DeformConv,
       C3x,
       RepC3,
     ):
@@ -242,7 +273,7 @@ if __name__ == "__main__":
                     model="yolov8x_dcn.yaml", data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
-                    val=True, save_json=True, conf=0.5, iou=0.5,
+                    val=True, save_json=True, conf=0.001, iou=0.7,
                     optimizer="Adam", seed=0,
                     box=7.5, cls=0.125, dfl=3.0,
                     close_mosaic=0,
