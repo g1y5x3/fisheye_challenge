@@ -85,7 +85,6 @@ def save_eval_json_with_id(validator):
 # monkey patching to bypass the unwanted code without modifying the library
 def albumentation_init(self, p=1.0):
   """Initialize the transform object for YOLO bbox formatted params."""
-  print("MONKEY PATCHED 1!!!")
   self.p = p
   self.transform = None
   prefix = colorstr("albumentations: ")
@@ -111,7 +110,6 @@ def albumentation_init(self, p=1.0):
 
 def load_model_custom(self, cfg=None, weights=None, verbose=True):
   """Return a YOLO detection model."""
-  print("MONKEY PATCHED 2!!!")
   weights, _ = attempt_load_one_weight("checkpoints/yolov8x.pt") 
   model = DetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
   if weights:
@@ -122,7 +120,6 @@ def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
   """Parse a YOLO model.yaml dictionary into a PyTorch model."""
   import ast
 
-  print("MONKEY PATCHED 3!!!")
   max_channels = float("inf")
   nc, act, scales = (d.get(x) for x in ("nc", "activation", "scales"))
   depth, width, kpt_shape = (d.get(x, 1.0) for x in ("depth_multiple", "width_multiple", "kpt_shape"))
@@ -242,10 +239,11 @@ if __name__ == "__main__":
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
   train_args = dict(project=args.project, name=args.name,
-                    model="yolov8x.yaml", data="fisheye.yaml",
+                    model="yolov8x_dcn.yaml", data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
-                    val=True, save_json=True, exist_ok=True,
-                    box=7.5, cls=0.125, dfl=5.0,
+                    exist_ok=True,
+                    val=True, save_json=True,
+                    box=7.5, cls=0.125, dfl=3.0,
                     close_mosaic=0, # completely disable mosaic
                     degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
