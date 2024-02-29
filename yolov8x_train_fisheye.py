@@ -242,7 +242,7 @@ if __name__ == "__main__":
                     model="yolov8x_dcn.yaml", data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
-                    val=True, save_json=True, conf=0.5, iou=0.5
+                    val=True, save_json=True, conf=0.5, iou=0.5,
                     optimizer="Adam", seed=0,
                     box=7.5, cls=0.125, dfl=3.0,
                     close_mosaic=0,
