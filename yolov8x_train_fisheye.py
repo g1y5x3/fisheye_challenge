@@ -135,22 +135,14 @@ class DeformableConv(nn.Module):
     """Initialize Conv layer with given arguments including activation."""
     super().__init__()
   
-    #print(f"in channels  {c1}")
-    #print(f"out channels {c2}")
-    #print(f"kernel size  {k}")
-    #print(f"stride       {s}")
-    #print(f"padding      {autopad(k,p,d)}")
-    #print(f"groups       {g}")
-    #print(f"dilation     {d}")
     self.padding = autopad(k, p, d)
     self.stride = s
     self.dilation = d
     self.conv = nn.Conv2d(c1, c2, k, s, self.padding, groups=g, dilation=d, bias=False)
-
     self.offset_conv = nn.Conv2d(c1, 2*k*k, k, s, self.padding, groups=g, dilation=d, bias=False)
-    nn.init.constant_(self.offset_conv.weight, 0.)
-
     self.mask_conv = nn.Conv2d(c1, 1*k*k, k, s, self.padding, groups=g, dilation=d, bias=False)
+
+    nn.init.constant_(self.offset_conv.weight, 0.)
     nn.init.constant_(self.mask_conv.weight, 0.)
 
     self.bn = nn.BatchNorm2d(c2)
@@ -159,15 +151,17 @@ class DeformableConv(nn.Module):
   def forward(self, x):
     offset = self.offset_conv(x)
     mask = 2. * torch.sigmoid(self.mask_conv(x))
-    x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
-                      padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    #x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
+    #                  padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    x = self.conv(x)
     return self.act(self.bn(x))
 
   def forward_fuse(self, x):
     offset = self.offset_conv(x)
     mask = 2. * torch.sigmoid(self.mask_conv(x))
-    x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
-                      padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    #x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
+    #                  padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    x = self.conv(x)
     return self.act(x)
 
 def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
@@ -303,7 +297,8 @@ if __name__ == "__main__":
                     close_mosaic=0,
                     degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
-                    mosaic=0.0, mixup=0.0)
+                    mosaic=0.0, mixup=0.0,
+                    verbose=True)
 
   trainer = DetectionTrainer(overrides=train_args)
   trainer.add_callback("on_val_end", save_eval_json_with_id)
