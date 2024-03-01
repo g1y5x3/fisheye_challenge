@@ -135,9 +135,7 @@ class DeformableConv(nn.Module):
     """Initialize Conv layer with given arguments including activation."""
     super().__init__()
   
-    print(f"p {p}")
     self.padding = autopad(k, p, d)
-    print(f"self.padding {self.padding}")
     self.stride = s
     self.dilation = d
     self.conv = nn.Conv2d(c1, c2, k, s, self.padding, groups=g, dilation=d, bias=False)
@@ -151,17 +149,26 @@ class DeformableConv(nn.Module):
     self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
 
   def forward(self, x):
-    print(x.shape)
+    print("start dcn forward")
+    print(self)
+    # TODO: investigate later
     h, w = x.shape[2:]
-    max_offset = 1.75
-    print(max_offset)
+    max_offset = 5
     offset = self.offset_conv(x).clamp(-max_offset, max_offset)
     mask = 2. * torch.sigmoid(self.mask_conv(x))
-    print(offset.shape)
-    print(mask.shape)
+    print(f"input shape {x.shape}")
+    print(f"weight {self.conv.weight.shape}")
+    print(f"offset {offset.shape}")
+    print(f"mask {mask.shape}")
+    print(f"bias {self.conv.bias}")
+    print(f"padding {self.padding}")
+    print(f"stride {self.stride}")
+    print(f"dialation {self.dilation}")
+    print(f"act {self.act}")
     x = deform_conv2d(input=x, offset=offset, mask=mask, weight=self.conv.weight, bias=self.conv.bias,
                       padding=self.padding, stride=self.stride, dilation=self.dilation)
-    print("dcn 4.1")
+    print(f"output {x.shape}")
+    print("end dcn forward")
     return self.act(self.bn(x))
 
   def forward_fuse(self, x):
