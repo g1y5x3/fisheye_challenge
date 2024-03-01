@@ -144,7 +144,7 @@ class DeformableConv(nn.Module):
 
   def forward(self, x):
     h, w = x.shape[2:]
-    max_offset = 5
+    max_offset = max(h, w)/4.
     offset = self.offset_conv(x).clamp(-max_offset, max_offset)
     mask = 2. * torch.sigmoid(self.mask_conv(x))
     x = deform_conv2d(input=x, offset=offset, mask=mask, weight=self.conv.weight, bias=self.conv.bias,
@@ -152,7 +152,9 @@ class DeformableConv(nn.Module):
     return self.act(self.bn(x))
 
   def forward_fuse(self, x):
-    offset = self.offset_conv(x)
+    h, w = x.shape[2:]
+    max_offset = max(h, w)/4.
+    offset = self.offset_conv(x).clamp(-max_offset, max_offset)
     mask = 2. * torch.sigmoid(self.mask_conv(x))
     x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
                       padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
