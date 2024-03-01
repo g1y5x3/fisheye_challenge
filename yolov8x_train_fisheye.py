@@ -135,7 +135,9 @@ class DeformableConv(nn.Module):
     """Initialize Conv layer with given arguments including activation."""
     super().__init__()
   
+    print(f"p {p}")
     self.padding = autopad(k, p, d)
+    print(f"self.padding {self.padding}")
     self.stride = s
     self.dilation = d
     self.conv = nn.Conv2d(c1, c2, k, s, self.padding, groups=g, dilation=d, bias=False)
@@ -149,19 +151,28 @@ class DeformableConv(nn.Module):
     self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
 
   def forward(self, x):
-    offset = self.offset_conv(x)
+    print(x.shape)
+    h, w = x.shape[2:]
+    max_offset = 1.75
+    print(max_offset)
+    offset = self.offset_conv(x).clamp(-max_offset, max_offset)
     mask = 2. * torch.sigmoid(self.mask_conv(x))
-    #x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
-    #                  padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
-    x = self.conv(x)
+    print(offset.shape)
+    print(mask.shape)
+    x = deform_conv2d(input=x, offset=offset, mask=mask, weight=self.conv.weight, bias=self.conv.bias,
+                      padding=self.padding, stride=self.stride, dilation=self.dilation)
+    print("dcn 4.1")
     return self.act(self.bn(x))
 
   def forward_fuse(self, x):
+    print("dcn 1.2")
     offset = self.offset_conv(x)
+    print("dcn 2.2")
     mask = 2. * torch.sigmoid(self.mask_conv(x))
-    #x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
-    #                  padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
-    x = self.conv(x)
+    print("dcn 3.2")
+    x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
+                      padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    print("dcn 4.2")
     return self.act(x)
 
 def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
