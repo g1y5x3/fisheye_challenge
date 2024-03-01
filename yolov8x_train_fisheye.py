@@ -8,6 +8,7 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 import torch, json, wandb, contextlib, argparse
 import torch.nn as nn
 import ultralytics.nn.tasks as tasks
+import ultralytics.utils.torch_utils as torch_utils
 from utils import get_image_id
 from torchvision.ops import deform_conv2d
 from pycocotools.coco import COCO
@@ -262,30 +263,35 @@ def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
     ch.append(c2)
   return nn.Sequential(*layers), sorted(save)
 
+# TODO: fix this
+def get_flops_pass(model, imgsz=640):
+  return 0.0
+
 if __name__ == "__main__":
 
   # monkey patches
   Albumentations.__init__ = albumentation_init
   DetectionTrainer.get_model = load_model_custom
   tasks.parse_model = parse_dcn_model
+  torch_utils.get_flops = get_flops_pass
 
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
-  parser.add_argument('-devices', type=int,   default=1,   help="batch size")
-  parser.add_argument('-frac',    type=float, default=1.0, help="fraction of the data being used")
-  parser.add_argument('-epoch',   type=int,   default=1,   help="number of epoch")
-  parser.add_argument('-bs',      type=int,   default=16,  help="number of batches")
-  parser.add_argument('-project', type=str,   default="fisheye-challenge", help="project name")
-  parser.add_argument('-name',    type=str,   default="yolov8x", help="run name")
+  parser.add_argument('-devices', type=int, default=1, help="batch size")
+  parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="batch size")
+  parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
+  parser.add_argument('-epoch', type=int, default=1, help="number of epoch")
+  parser.add_argument('-bs', type=int, default=16, help="number of batches")
+  parser.add_argument('-project', type=str, default="fisheye-challenge", help="project name")
+  parser.add_argument('-name', type=str, default="yolov8x", help="run name")
   args = parser.parse_args()
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
-  train_args = dict(project=args.project, name=args.name,
-                    model="yolov8x_dcn.yaml", data="fisheye.yaml",
+  train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
                     val=True, save_json=True, conf=0.001, iou=0.7,
-                    optimizer="Adam", seed=0,
+                    optimizer="auto", seed=0,
                     box=7.5, cls=0.125, dfl=3.0,
                     close_mosaic=0,
                     degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
