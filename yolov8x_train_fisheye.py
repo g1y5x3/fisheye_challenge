@@ -297,7 +297,7 @@ if __name__ == "__main__":
                     degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
                     mosaic=0.0, mixup=0.0,
-                    verbose=True)
+                    deterministic=False, verbose=True)
 
   trainer = DetectionTrainer(overrides=train_args)
   trainer.add_callback("on_val_end", save_eval_json_with_id)
