@@ -9,6 +9,7 @@ import torch, json, wandb, contextlib, argparse
 import torch.nn as nn
 import ultralytics.nn.tasks as tasks
 from utils import get_image_id
+from torchvision.ops import deform_conv2d
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from ultralytics.utils import LOGGER, RANK, colorstr
@@ -114,17 +115,19 @@ def albumentation_init(self, p=1.0):
 def load_model_custom(self, cfg=None, weights=None, verbose=True):
   """Return a YOLO detection model."""
   weights, _ = attempt_load_one_weight("checkpoints/yolov8x.pt") 
+  print("0")
   model = DetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
+  print("1")
   # print model state dictionaries
   for param_tensor in model.state_dict():
     print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
+  print("2")
   if weights:
     model.load(weights)
   return model
 
-class DeformConv(nn.Module):
-  from torchvision.ops import deform_conv2d
+class DeformableConv(nn.Module):
 
   default_act = nn.SiLU()  # default activation
 
@@ -132,19 +135,40 @@ class DeformConv(nn.Module):
     """Initialize Conv layer with given arguments including activation."""
     super().__init__()
   
-    #self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
-    self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
-    print(self.conv)
+    #print(f"in channels  {c1}")
+    #print(f"out channels {c2}")
+    #print(f"kernel size  {k}")
+    #print(f"stride       {s}")
+    #print(f"padding      {autopad(k,p,d)}")
+    #print(f"groups       {g}")
+    #print(f"dilation     {d}")
+    self.padding = autopad(k, p, d)
+    self.stride = s
+    self.dilation = d
+    self.conv = nn.Conv2d(c1, c2, k, s, self.padding, groups=g, dilation=d, bias=False)
+
+    self.offset_conv = nn.Conv2d(c1, 2*k*k, k, s, self.padding, groups=g, dilation=d, bias=False)
+    nn.init.constant_(self.offset_conv.weight, 0.)
+
+    self.mask_conv = nn.Conv2d(c1, 1*k*k, k, s, self.padding, groups=g, dilation=d, bias=False)
+    nn.init.constant_(self.mask_conv.weight, 0.)
+
     self.bn = nn.BatchNorm2d(c2)
     self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
 
   def forward(self, x):
-    print(f"forward {x.shape}")
-    return self.act(self.bn(self.conv(x)))
+    offset = self.offset_conv(x)
+    mask = 2. * torch.sigmoid(self.mask_conv(x))
+    x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
+                      padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    return self.act(self.bn(x))
 
   def forward_fuse(self, x):
-    print(f"forward_fuse {x.shape}")
-    return self.act(self.conv(x))
+    offset = self.offset_conv(x)
+    mask = 2. * torch.sigmoid(self.mask_conv(x))
+    x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
+                      padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    return self.act(x)
 
 def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
   """Parse a YOLO model.yaml dictionary into a PyTorch model."""
@@ -198,7 +222,7 @@ def parse_dcn_model(d, ch, verbose=True):  # model_dict, input_channels(3)
       C3Ghost,
       nn.ConvTranspose2d,
       DWConvTranspose2d,
-	  DeformConv,
+	  DeformableConv,
       C3x,
       RepC3,
     ):
