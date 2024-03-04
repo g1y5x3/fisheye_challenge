@@ -117,6 +117,7 @@ def load_model_custom(self, cfg=None, weights=None, verbose=True):
   """Return a YOLO detection model."""
   weights, _ = attempt_load_one_weight("checkpoints/yolov8x.pt") 
   model = DetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
+  print(cfg)
   if weights:
     model.load(weights)
   return model
@@ -294,12 +295,14 @@ if __name__ == "__main__":
                     exist_ok=True,
                     val=True, save_json=True, conf=0.001, iou=0.7,
                     optimizer="auto", seed=0,
-                    box=7.5, cls=0.125, dfl=3.0,
+                    box=7.5, cls=0.5, dfl=1.5,
+                    lr0=0.01,
                     close_mosaic=0,
-                    degrees=0.1, translate=0.1, scale=0.0, shear=0.0, 
+                    degrees=0.0, translate=0.1, scale=0.5, shear=0.0,
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
                     mosaic=0.0, mixup=0.0,
-                    deterministic=False, verbose=True)
+                    deterministic=True, verbose=True,
+                    pretrained=False)
 
   trainer = DetectionTrainer(overrides=train_args)
   trainer.add_callback("on_val_end", save_eval_json_with_id)
