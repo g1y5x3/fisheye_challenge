@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: yolo-pod
+spec:
+  tolerations:
+  - key: nautilus.io/mizzou-vigir
+    operator: Exists
+    effect: NoSchedule
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - gpn-fiona-mizzou-2.rnet.missouri.edu
+          - key: nvidia.com/gpu.product
+            operator: In
+            values:
+            - NVIDIA-A100-SXM4-80GB
+  volumes:
+  - name: git-secret
+    secret:
+      secretName: yixiang-key
+      defaultMode: 256
+  - name: dshm
+    emptyDir:
+      medium: Memory
+  - name: code
+    persistentVolumeClaim:
+      claimName: fisheye-challenge
+
+  containers:
+  - name: gpu-container
+    image: gitlab-registry.nrp-nautilus.io/yg5d6/yolov8
+    command: ["/bin/sh", "-c"]
+    args:
+    - apt install tmux -y;
+      mkdir /root/.ssh/;
+      cp /etc/ssh-key/ssh-privatekey /root/.ssh/id_ed25519;
+      wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
+      git config --global user.name  "Yixiang Gao";
+      git config --global user.email "yg5d6@mail.missouri.edu";
+      pip install cython;
+      cp -r /workspace/code/cocoapi /workspace/;
+      cd /workspace/code/cocoapi/PythonAPI;
+      make;
+      pip install -e .;
+      cd /workspace/FishEye8k/;
+      mkdir dataset;
+      tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
+      sleep infinity;
+    resources:
+      limits:
+        memory: "32G"
+        cpu: "8"
+        nvidia.com/gpu: "1"
+      requests:
+        memory: "32G"
+        cpu: "8"
+        nvidia.com/gpu: "1"
+    volumeMounts:
+    - name: git-secret
+      readOnly: true
+      mountPath: /etc/ssh-key
+    - name: dshm
+      mountPath: /dev/shm
+    - name: code
+      mountPath: /workspace/code
