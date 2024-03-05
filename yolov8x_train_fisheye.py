@@ -284,6 +284,8 @@ if __name__ == "__main__":
   parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
   parser.add_argument('-epoch', type=int, default=1, help="number of epoch")
   parser.add_argument('-bs', type=int, default=16, help="number of batches")
+  parser.add_argument('-conf', type=float, default=0.001, help="confidence threshold")
+  parser.add_argument('-iou', type=float, default=0.7, help="intersection of union")
   parser.add_argument('-project', type=str, default="fisheye-challenge", help="project name")
   parser.add_argument('-name', type=str, default="yolov8x", help="run name")
   args = parser.parse_args()
@@ -293,7 +295,7 @@ if __name__ == "__main__":
   train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
-                    val=True, save_json=True, conf=0.001, iou=0.7,
+                    val=True, save_json=True, conf=args.conf, iou=args.iou,
                     optimizer="auto", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
                     lr0=0.01,
