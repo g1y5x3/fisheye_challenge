@@ -104,6 +104,7 @@ def albumentation_init(self, p=1.0):
       A.CLAHE(p=0.01),
       A.RandomBrightnessContrast(p=0.01),
       A.RandomGamma(p=0.01),
+      #A.OpticalDistortion(p=0.01),
     ]
     self.transform = A.Compose(T, bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]))
 
