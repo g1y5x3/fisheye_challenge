@@ -5,6 +5,7 @@ from ultralytics.utils import ops
 from ultralytics.utils.plotting import Annotator, Colors
 from ultralytics.utils.metrics import ConfusionMatrix, DetMetrics
 from ultralytics.models.yolo.detect.val import DetectionValidator
+
 # For Deformable Conv
 import torch
 import torch.nn as nn
@@ -192,5 +193,4 @@ class DeformableConv(nn.Module):
     x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
                       padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
     return self.act(x)
-
 
