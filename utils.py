@@ -1,4 +1,3 @@
-import torch
 import wandb
 import numpy as np
 from PIL import Image
@@ -6,6 +5,11 @@ from ultralytics.utils import ops
 from ultralytics.utils.plotting import Annotator, Colors
 from ultralytics.utils.metrics import ConfusionMatrix, DetMetrics
 from ultralytics.models.yolo.detect.val import DetectionValidator
+# For Deformable Conv
+import torch
+import torch.nn as nn
+from torchvision.ops import deform_conv2d
+from ultralytics.nn.modules.conv import autopad
 
 # modifiedy from ultralytics to make it more framework agnostic, the original function was too tie
 # to batch processing workflow
@@ -149,3 +153,44 @@ def get_image_id(img_name):
   frameIndx = int(img_name.split('_')[2])
   imageId = int(str(cameraIndx)+str(sceneIndx)+str(frameIndx))
   return imageId
+
+class DeformableConv(nn.Module):
+
+  default_act = nn.SiLU()  # default activation
+
+  def __init__(self, c1, c2, k=1, s=1, p=None, g=1, d=1, act=True):
+    """Initialize Conv layer with given arguments including activation."""
+    super().__init__()
+  
+    self.padding = autopad(k, p, d)
+    self.stride = s
+    self.dilation = d
+    self.conv = nn.Conv2d(c1, c2, k, s, self.padding, groups=g, dilation=d, bias=False)
+    self.offset_conv = nn.Conv2d(c1, 2*k*k, k, s, self.padding, groups=g, dilation=d, bias=False)
+    self.mask_conv = nn.Conv2d(c1, 1*k*k, k, s, self.padding, groups=g, dilation=d, bias=False)
+
+    nn.init.constant_(self.offset_conv.weight, 0.)
+    nn.init.constant_(self.mask_conv.weight, 0.)
+
+    self.bn = nn.BatchNorm2d(c2)
+    self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+
+  def forward(self, x):
+    h, w = x.shape[2:]
+    max_offset = max(h, w)/4.
+    offset = self.offset_conv(x).clamp(-max_offset, max_offset)
+    mask = 2. * torch.sigmoid(self.mask_conv(x))
+    x = deform_conv2d(input=x, offset=offset, mask=mask, weight=self.conv.weight, bias=self.conv.bias,
+                      padding=self.padding, stride=self.stride, dilation=self.dilation)
+    return self.act(self.bn(x))
+
+  def forward_fuse(self, x):
+    h, w = x.shape[2:]
+    max_offset = max(h, w)/4.
+    offset = self.offset_conv(x).clamp(-max_offset, max_offset)
+    mask = 2. * torch.sigmoid(self.mask_conv(x))
+    x = deform_conv2d(input=x, offset=offset, weight=self.conv.weight, bias=None,
+                      padding=self.padding, mask=mask, stride=self.stride, dilation=self.dilation)
+    return self.act(x)
+
+
