@@ -296,7 +296,7 @@ if __name__ == "__main__":
   train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
-                    val=True, save_json=True, conf=args.conf, iou=args.iou,
+                    conf=args.conf, iou=args.iou,
                     optimizer="auto", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
                     lr0=0.01,
@@ -308,6 +308,6 @@ if __name__ == "__main__":
                     pretrained=True)
 
   trainer = DetectionTrainer(overrides=train_args)
-  trainer.add_callback("on_val_end", save_eval_json_with_id)
+  #trainer.add_callback("on_val_end", save_eval_json_with_id)
   trainer.train()
 
