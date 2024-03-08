@@ -18,6 +18,7 @@ from ultralytics.data.augment import Albumentations
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from yolov8_monkey_patches import albumentation_init, load_model_custom, get_flops_pass, parse_dcn_model  
 
+# TODO: there might some bugs with calling cocoeval
 # the default json was saved with "file_name" instead, saving as "image_id" makes it easier to 
 # compute benchmarks # with cocoapi
 def save_eval_json_with_id(validator):
@@ -45,6 +46,17 @@ def save_eval_json_with_id(validator):
       
     # log the mAP50-95 standard from the challenge
     wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.args.epochs)
+
+def check_dcn_weights_offsets(trainer):
+  print("This is CALLBACK!")
+  print(f"p1.offset_conv {trainer.model.model[0].offset_conv}")
+  print(f"p1.offset_conv {trainer.model.model[0].offset_conv.weight.shape}")
+  print(f"p1.mask_conv {trainer.model.model[0].mask_conv}")
+  print(f"p1.mask_conv {trainer.model.model[0].mask_conv.weight.shape}")
+  print(f"p2.offset_conv {trainer.model.model[1].offset_conv}")
+  print(f"p2.offset_conv {trainer.model.model[1].offset_conv.weight.shape}")
+  print(f"p2.mask_conv {trainer.model.model[1].mask_conv}")
+  print(f"p2.mask_conv {trainer.model.model[1].mask_conv.weight.shape}")
 
 if __name__ == "__main__":
 
@@ -84,5 +96,6 @@ if __name__ == "__main__":
 
   trainer = DetectionTrainer(overrides=train_args)
   #trainer.add_callback("on_val_end", save_eval_json_with_id)
+  trainer.add_callback("on_train_epoch_end", check_dcn_weights_offsets)
   trainer.train()
 
