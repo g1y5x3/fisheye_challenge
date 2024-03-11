@@ -80,9 +80,10 @@ if __name__ == "__main__":
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
-  train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye.yaml",
+  train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye0.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
+                    single_cls = True,
                     conf=args.conf, iou=args.iou,
                     optimizer="auto", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
@@ -96,6 +97,6 @@ if __name__ == "__main__":
 
   trainer = DetectionTrainer(overrides=train_args)
   #trainer.add_callback("on_val_end", save_eval_json_with_id)
-  trainer.add_callback("on_train_epoch_end", check_dcn_weights_offsets)
+  #trainer.add_callback("on_train_epoch_end", check_dcn_weights_offsets)
   trainer.train()
 
