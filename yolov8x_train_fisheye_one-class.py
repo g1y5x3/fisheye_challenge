@@ -5,7 +5,7 @@ Making sure --nproc_per_node and -devices has the same param.
 python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 1 -bs 32
 
 """
-import torch, json, wandb, argparse
+import os, torch, json, wandb, argparse
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from ultralytics.nn.tasks import DetectionModel
@@ -67,6 +67,7 @@ if __name__ == "__main__":
   torch_utils.get_flops = get_flops_pass
 
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
+  parser.add_argument('-cls', type=int, default=1, help="class to be trained")
   parser.add_argument('-devices', type=int, default=1, help="batch size")
   parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="batch size")
   parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
@@ -80,7 +81,12 @@ if __name__ == "__main__":
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
-  train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye1.yaml",
+  # delete cache
+  os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels.cache")
+  os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/test.cache")
+  # cp the class-specific label folder
+
+  train_args = dict(project=args.project, name=args.name, model=args.model, data=f"fisheye{args.cls}.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
                     single_cls = True,
