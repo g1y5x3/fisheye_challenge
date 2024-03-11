@@ -80,7 +80,7 @@ if __name__ == "__main__":
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
-  train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye0.yaml",
+  train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye1.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
                     single_cls = True,

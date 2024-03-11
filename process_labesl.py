@@ -1,6 +1,8 @@
 import os
 
-label_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels_all"
+cls = 1
+folder = "train"
+label_dir = f"/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/{folder}/labels_all"
 
 # collect all the text files
 text_files = []
@@ -11,8 +13,7 @@ for file in os.listdir(label_dir):
 print(len(text_files))
 print(text_files[:5])
 
-cls = 0
-target_dir = f"/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels{cls}"
+target_dir = f"/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/{folder}/labels{cls}"
 
 total_instances = 0
 for i in range(len(text_files)):
@@ -25,8 +26,10 @@ for i in range(len(text_files)):
     for line in lines:
       obj_cls = int(line.split()[0])
       if obj_cls == cls:
-        total_instances += 1
-        print(output_file)
-        f.write(line)
+        if line.strip():
+          total_instances += 1
+          print(output_file)
+          modified_line = '0'+line[1:]
+          f.write(modified_line)
 
 print(f"Total {total_instances}")
