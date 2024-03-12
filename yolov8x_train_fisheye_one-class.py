@@ -5,7 +5,7 @@ Making sure --nproc_per_node and -devices has the same param.
 python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 1 -bs 32
 
 """
-import os, torch, json, wandb, argparse
+import os, torch, json, wandb, shutil, argparse
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from ultralytics.nn.tasks import DetectionModel
@@ -69,7 +69,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
   parser.add_argument('-cls', type=int, default=1, help="class to be trained")
   parser.add_argument('-devices', type=int, default=1, help="batch size")
-  parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="batch size")
+  parser.add_argument('-model', type=str, default="yolov8x_dcn_one-class.yaml", help="batch size")
   parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
   parser.add_argument('-epoch', type=int, default=1, help="number of epoch")
   parser.add_argument('-bs', type=int, default=16, help="number of batches")
@@ -83,10 +83,22 @@ if __name__ == "__main__":
 
   # delete cache
   os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels.cache")
-  os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/test.cache")
+  os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels.cache")
+  # delete the old label folder
+  shutil.rmtree("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels")
+  shutil.rmtree("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels")
   # cp the class-specific label folder
+  shutil.copytree(
+    f"/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels{args.cls}",
+    "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels"
+  )
+  shutil.copytree(
+    f"/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels{args.cls}",
+    "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels"
+  )
 
-  train_args = dict(project=args.project, name=args.name, model=args.model, data=f"fisheye{args.cls}.yaml",
+  train_args = dict(project=args.project, name=args.name, model=args.model,
+                    data=f"fisheye{args.cls}.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, fraction=args.frac, imgsz=1280,
                     exist_ok=True,
                     single_cls = True,

@@ -96,6 +96,6 @@ if __name__ == "__main__":
 
   trainer = DetectionTrainer(overrides=train_args)
   #trainer.add_callback("on_val_end", save_eval_json_with_id)
-  trainer.add_callback("on_train_epoch_end", check_dcn_weights_offsets)
+  #trainer.add_callback("on_train_epoch_end", check_dcn_weights_offsets)
   trainer.train()
 
