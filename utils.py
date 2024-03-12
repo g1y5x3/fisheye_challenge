@@ -177,8 +177,9 @@ class DeformableConv(nn.Module):
     self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
 
   def forward(self, x):
-    h, w = x.shape[2:]
-    max_offset = max(h, w)/4.
+    #h, w = x.shape[2:]
+    #max_offset = max(h, w)/4.
+    max_offset = 4
     offset = self.offset_conv(x).clamp(-max_offset, max_offset)
     mask = 2. * torch.sigmoid(self.mask_conv(x))
     x = deform_conv2d(input=x, offset=offset, mask=mask, weight=self.conv.weight, bias=self.conv.bias,
