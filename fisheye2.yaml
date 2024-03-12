@@ -10,4 +10,4 @@ test: # test images (optional)
 
 # Classes
 names:
-  2: car
+  0: car

@@ -82,8 +82,16 @@ if __name__ == "__main__":
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
   # delete cache
-  os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels.cache")
-  os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels.cache")
+  try:
+    os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels.cache")
+  except FileNotFoundError:
+    print("cache file doesn't exist!")
+
+  try:
+    os.remove("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels.cache")
+  except FileNotFoundError:
+    print("cache file doesn't exist!")
+
   # delete the old label folder
   shutil.rmtree("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels")
   shutil.rmtree("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/labels")
