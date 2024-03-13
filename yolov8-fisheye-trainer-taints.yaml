@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata: 
-  name: yolov8-conv-100
+  name: yolov8x-dcn-max-offset-quarter-lr-wd-rot
 spec:
   ttlSecondsAfterFinished: 100
   template:
@@ -48,10 +48,10 @@ spec:
           cd /workspace/FishEye8k/;
           mkdir dataset;
           tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
-          wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
           cp -r /workspace/code/fisheye_challenge .;
           cd fisheye_challenge;
-          python yolov8x_train_fisheye.py -devices 1 -model yolov8x_conv.yaml -epoch 100 -bs 16 -name yolov8x_conv_100_default;
+          wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
+          WANDB_RUN_GROUP=yolov8x_five-class python yolov8x_train_fisheye.py -devices 1 -model yolov8x_dcn.yaml -epoch 100 -bs 16 -conf 0.5 -iou 0.5 -name yolov8x_lr_wd_rot;
         resources:
           limits:
             memory: "32G"

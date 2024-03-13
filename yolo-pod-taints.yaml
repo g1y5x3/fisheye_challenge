@@ -37,13 +37,11 @@ spec:
     image: gitlab-registry.nrp-nautilus.io/yg5d6/yolov8
     command: ["/bin/sh", "-c"]
     args:
-    - apt install tmux -y;
-      mkdir /root/.ssh/;
+    - mkdir /root/.ssh/;
       cp /etc/ssh-key/ssh-privatekey /root/.ssh/id_ed25519;
       wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
       git config --global user.name  "Yixiang Gao";
       git config --global user.email "yg5d6@mail.missouri.edu";
-      pip install cython;
       cp -r /workspace/code/cocoapi /workspace/;
       cd /workspace/code/cocoapi/PythonAPI;
       make;

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata: 
-  name: yolov8-fisheye-trainer-2gpus
+  name: yolov8n-dcn
 spec:
   ttlSecondsAfterFinished: 100
   template:
@@ -14,7 +14,8 @@ spec:
               - key: nvidia.com/gpu.product
                 operator: In
                 values:
-                - NVIDIA-A100-SXM4-80GB
+                #- NVIDIA-RTX-A6000
+                - NVIDIA-GeForce-RTX-3090
       volumes:
       - name: dshm
         emptyDir:
@@ -40,19 +41,19 @@ spec:
           cd /workspace/FishEye8k/;
           mkdir dataset;
           tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
-          wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
           cp -r /workspace/code/fisheye_challenge .;
           cd fisheye_challenge;
-          python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 250 -bs 32 -name yolov8x_full_train;
+          wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
+          python yolov8x_train_fisheye.py -devices 1 -model yolov8n_dcn.yaml -epoch 50 -bs 16 -conf 0.5 -iou 0.5 -name yolov8n_dcn;
         resources:
           limits:
-            memory: "64G"
+            memory: "32G"
             cpu: "8"
-            nvidia.com/gpu: "2"
+            nvidia.com/gpu: "1"
           requests:
-            memory: "64G"
+            memory: "32G"
             cpu: "8"
-            nvidia.com/gpu: "2"
+            nvidia.com/gpu: "1"
         volumeMounts:
         - name: dshm
           mountPath: /dev/shm

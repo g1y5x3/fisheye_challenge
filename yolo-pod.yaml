@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata: 
-  name: yolo-pod-3090
+  name: yolo-pod
 spec:
   affinity:
     nodeAffinity:
@@ -11,11 +11,6 @@ spec:
           - key: nvidia.com/gpu.product
             operator: In
             values:
-            #- NVIDIA-A100-SXM4-80GB
-            #- NVIDIA-RTX-A6000
-            #- NVIDIA-RTX-A5000
-            #- NVIDIA-A40
-            #- NVIDIA-A10
             - NVIDIA-GeForce-RTX-3090
   volumes:
   - name: git-secret
@@ -37,7 +32,6 @@ spec:
     - apt install tmux -y;
       mkdir /root/.ssh/;
       cp /etc/ssh-key/ssh-privatekey /root/.ssh/id_ed25519;
-      wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
       git config --global user.name  "Yixiang Gao";
       git config --global user.email "yg5d6@mail.missouri.edu";
       pip install cython;
@@ -48,6 +42,7 @@ spec:
       cd /workspace/FishEye8k/;
       mkdir dataset;
       tar -xvf Fisheye8K_all_including_train.tar.gz -C dataset/;
+      wandb login a9d4d981ca28ba6b6729e2a29464674ca243b891;
       sleep infinity;
     resources:
       limits:
