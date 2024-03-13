@@ -4,14 +4,12 @@ import ultralytics.nn.tasks as tasks
 import ultralytics.utils.torch_utils as torch_utils
 from ultralytics import YOLO
 from ultralytics.utils import ops
-#from ultralytics.data.augment import Albumentations
 from utils import bounding_boxes, FisheyeDetectionValidator
 from ultralytics.models.yolo.detect.train import DetectionTrainer
-from yolov8_monkey_patches import albumentation_init, load_model_custom, parse_dcn_model, get_flops_pass
+from yolov8_monkey_patches import load_model_custom, parse_dcn_model, get_flops_pass
 
 if __name__ == "__main__":
   # monkey patches
-  #Albumentations.__init__ = albumentation_init
   DetectionTrainer.get_model = load_model_custom
   tasks.parse_model = parse_dcn_model
   torch_utils.get_flops = get_flops_pass
