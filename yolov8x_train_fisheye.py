@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
   parser.add_argument('-devices', type=int, default=1, help="batch size")
-  parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="batch size")
+  parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="model file name")
   parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
   parser.add_argument('-epoch', type=int, default=1, help="number of epoch")
   parser.add_argument('-bs', type=int, default=16, help="number of batches")
