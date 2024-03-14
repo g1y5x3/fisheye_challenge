@@ -7,4 +7,4 @@ parser.add_argument('-model', type=str, default="yolov8x-p2.yaml", help="model f
 args = parser.parse_args()
  
 model = YOLO(args.model)
-results = model.train(data='coco.yaml', epochs=250, imgsz=1024)
+results = model.train(data='coco.yaml', epochs=250, imgsz=640, device=[0,1], batch=32)
