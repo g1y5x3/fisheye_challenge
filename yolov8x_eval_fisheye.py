@@ -4,6 +4,7 @@ import ultralytics.nn.tasks as tasks
 import ultralytics.utils.torch_utils as torch_utils
 from ultralytics import YOLO
 from ultralytics.utils import ops
+from ultralytics.utils.metrics import ap_per_class
 from utils import bounding_boxes, FisheyeDetectionValidator
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from yolov8_monkey_patches import load_model_custom, parse_dcn_model, get_flops_pass
@@ -23,9 +24,9 @@ if __name__ == "__main__":
   config = {"conf": args.conf,
             "iou" : args.iou}
   
-  run = wandb.init(project="fisheye-challenge", name="yolov8x_eval", config=config)
+  run = wandb.init(project="fisheye-challenge", name="yolov8x-dcn-lr2e-5_eval", config=config)
 
-  art = run.use_artifact("g1y5x3/fisheye-challenge/run_zypfjyhk_model:v0")
+  art = run.use_artifact("g1y5x3/fisheye-challenge/run_u5sa7jfr_model:v0")
   art_dir = art.download()
 
   data_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/images/"
@@ -107,12 +108,17 @@ if __name__ == "__main__":
 
     fisheye_eval.update_metrics([torch.tensor(pred_array)], [torch.tensor(gt_array)])
 
+  # fisheye_eval.metrics.plot=True
+  print(fisheye_eval.stats)
+
   print("Confusion Matrix:")
   print(fisheye_eval.confusion_matrix.matrix)
   fisheye_eval.confusion_matrix.plot(save_dir="results", names=tuple(class_name.values()))
-  stat = fisheye_eval.get_stats()
+
   print(fisheye_eval.get_desc())
   fisheye_eval.print_results()
+
+  stat = fisheye_eval.get_stats()
     
   run.log(stat)
   run.log({"metrics/conf_mat(B)": wandb.Image("results/confusion_matrix_normalized.png")})
