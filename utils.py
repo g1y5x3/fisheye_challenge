@@ -106,6 +106,32 @@ def plot_images(images, cls, bboxes, confs, names, title=None, conf_thres=0.25, 
   
   return annotator.result()
 
+def bounding_boxes_pred(img, boxes_predict, class_name):
+  
+  return wandb.Image(
+           img,
+           boxes={
+             "prediction": {
+               "box_data": [
+                 {
+                   "position": {
+                     "minX": float(box[0]),
+                     "minY": float(box[1]),
+                     "maxX": float(box[2]),
+                     "maxY": float(box[3]),
+                   },
+                   "class_id": int(box[5]),
+                   "domain": "pixel",
+                   "box_caption": class_name[int(box[5])],
+                   "scores"     : {"score": float(box[4])}
+                 }
+                 for box in boxes_predict
+               ],
+               "class_labels": class_name,
+             }
+           },
+        )
+
 def bounding_boxes(img, boxes_predict, boxes_gt, class_name):
   
   return wandb.Image(
@@ -150,7 +176,7 @@ def bounding_boxes(img, boxes_predict, boxes_gt, class_name):
         ) 
 
 def get_image_id(img_name):
-  #img_name = img_name.split('.png')[0]
+  img_name = img_name.split('.png')[0]
   sceneList = ['M', 'A', 'E', 'N']
   cameraIndx = int(img_name.split('_')[0].split('camera')[1])
   sceneIndx = sceneList.index(img_name.split('_')[1])
