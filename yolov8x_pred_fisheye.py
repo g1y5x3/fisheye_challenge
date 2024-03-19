@@ -36,6 +36,7 @@ if __name__ == "__main__":
   model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
 
   result_json = []
+  result_dict = []
   for i in range(len(sources)//128+1):
     start = i*128
     end = (i+1)*128 if i <= 20 else -1 
@@ -45,7 +46,7 @@ if __name__ == "__main__":
                             stream=False, verbose=True)
 
     for result in results:
-      image_id = result.path.rsplit('/',1)[-1]
+      image_name = result.path.rsplit('/',1)[-1]
       
       bboxes = ops.xyxy2ltwh(result.boxes.xyxy.cpu().numpy())
       conf = result.boxes.conf.cpu().numpy()
@@ -53,36 +54,45 @@ if __name__ == "__main__":
       for cat, score, box in zip(cls, conf, bboxes.tolist()):
         result_json.append(
           {
-            "image_id": get_image_id(image_id),
+            "image_id": get_image_id(image_name),
+            "category_id": int(cat),
+            "bbox": [float(x) for x in box],
+            "score": float(score)
+          }
+        )
+        result_dict.append(
+          {
+            "image_id": image_name,
             "category_id": int(cat),
             "bbox": [float(x) for x in box],
             "score": float(score)
           }
         )
 
-  with open("results/yolov8x_pred_fisheye.json", "w") as f:
+  with open("results/yolov8x_pred_id_fisheye.json", "w") as f:
     json.dump(result_json, f)
+
+  artifact = wandb.Artifact(type="results", name=f"run_{run.id}_results")
+  artifact.add_file(local_path="results/yolov8x_pred_id_fisheye.json")
+  run.log_artifact(artifact)
 
   table = wandb.Table(columns=["ID", "Image"])
 
   # Initialize the result calculation
   class_name = {0: 'bus', 1: 'bike', 2: 'car', 3: 'pedestrian', 4: 'truck'}
-  #fisheye_eval = FisheyeDetectionValidator()
-  #fisheye_eval.init_metrics(class_name)
 
-  pred_dir = "results/yolov8x_pred_fisheye.json"
+  pred_dir = "results/yolov8x_pred_name_fisheye.json"
   with open(pred_dir) as f: 
     preds = json.load(f)
 
   for img_name in files:
     print(img_name)
     
-    # get predictions
-    bboxes = np.array([pred["bbox"] for pred in preds if pred["image_id"] == img_name])
+    bboxes = np.array([pred["bbox"] for pred in result_dict if pred["image_id"] == img_name])
     if len(bboxes) > 0:
       bboxes = ops.ltwh2xyxy(bboxes)
-      confs = np.array([pred["score"] for pred in preds if pred["image_id"] == img_name])
-      cls = np.array([pred["category_id"] for pred in preds if pred["image_id"] == img_name])
+      confs = np.array([pred["score"] for pred in result_dict if pred["image_id"] == img_name])
+      cls = np.array([pred["category_id"] for pred in result_dict if pred["image_id"] == img_name])
       pred_array = np.concatenate((bboxes, confs[:, np.newaxis], cls[:, np.newaxis]), axis=1)
     else:
       pred_array = np.array([])
