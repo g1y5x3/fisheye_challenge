@@ -73,7 +73,7 @@ if __name__ == "__main__":
   parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
   parser.add_argument('-epoch', type=int, default=1, help="number of epoch")
   parser.add_argument('-bs', type=int, default=16, help="number of batches")
-  parser.add_argument('-conf', type=float, default=0.5, help="confidence threshold")
+  parser.add_argument('-conf', type=float, default=0.001, help="confidence threshold")
   parser.add_argument('-iou', type=float, default=0.5, help="intersection of union")
   parser.add_argument('-project', type=str, default="fisheye-challenge", help="project name")
   parser.add_argument('-name', type=str, default="yolov8x", help="run name")
@@ -85,9 +85,9 @@ if __name__ == "__main__":
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=args.imgsz, fraction=args.frac,
                     exist_ok=True,
                     conf=args.conf, iou=args.iou,
-                    optimizer="auto", seed=0,
+                    optimizer="AdamW", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
-                    lr0=0.01,
+                    lr0=2e-7, warmup_bias_lr=2e-7/3,
                     close_mosaic=0,
                     degrees=0.0, translate=0.1, scale=0.5, shear=0.0,
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
