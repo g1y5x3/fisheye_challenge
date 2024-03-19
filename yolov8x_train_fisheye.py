@@ -87,7 +87,7 @@ if __name__ == "__main__":
                     conf=args.conf, iou=args.iou,
                     optimizer="AdamW", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
-                    lr0=2e-7, warmup_bias_lr=2e-7/3,
+                    lr0=2e-5, warmup_bias_lr=2e-5/3,
                     close_mosaic=0,
                     degrees=0.0, translate=0.1, scale=0.5, shear=0.0,
                     perspective=0.0, flipud=0.0, fliplr=0.5, 

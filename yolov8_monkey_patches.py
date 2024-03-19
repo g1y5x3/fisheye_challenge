@@ -73,9 +73,10 @@ def albumentation_init(self, p=1.0):
 
 def load_model_custom(self, cfg=None, weights=None, verbose=True):
   """Return a YOLO detection model."""
-  # TODO: train yolov8x-p2 to get the initial weights
-  print(cfg)
-  weights, _ = attempt_load_one_weight("checkpoints/yolov8x.pt")
+  print("===== cfg =====")
+  name = cfg.split("_")[0]
+  print(name)
+  weights, _ = attempt_load_one_weight(f"checkpoints/{name}.pt")
   model = DetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
   print(f"config pretrained: {self.args.pretrained}")
   if weights and self.args.pretrained:
