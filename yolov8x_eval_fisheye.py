@@ -24,9 +24,9 @@ if __name__ == "__main__":
   config = {"conf": args.conf,
             "iou" : args.iou}
   
-  run = wandb.init(project="fisheye-challenge", name="yolov8x-dcn-lr2e-5_eval", config=config)
+  run = wandb.init(project="fisheye-challenge", name="yolov8x-dcn-1280-lr2e-5-mosaic_eval_N", config=config)
 
-  art = run.use_artifact("g1y5x3/fisheye-challenge/run_u5sa7jfr_model:v0")
+  art = run.use_artifact("g1y5x3/fisheye-challenge/run_dba333jb_model:best")
   art_dir = art.download()
 
   data_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/images/"
@@ -34,6 +34,12 @@ if __name__ == "__main__":
   with open("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/test.json") as f:
     images = json.load(f)
   files = images["images"]
+  print(files)
+
+  # Filter images
+  files = [dict for dict in files if "N" in dict["file_name"]]
+  print(files)
+
   sources = [data_dir+img["file_name"] for img in files]
   print(f"Total data for inference {len(sources)}")
 
@@ -109,14 +115,14 @@ if __name__ == "__main__":
     fisheye_eval.update_metrics([torch.tensor(pred_array)], [torch.tensor(gt_array)])
 
   # fisheye_eval.metrics.plot=True
-  print(fisheye_eval.stats)
+  # print(fisheye_eval.stats)
 
   print("Confusion Matrix:")
   print(fisheye_eval.confusion_matrix.matrix)
   fisheye_eval.confusion_matrix.plot(save_dir="results", names=tuple(class_name.values()))
 
-  print(fisheye_eval.get_desc())
-  fisheye_eval.print_results()
+  # print(fisheye_eval.get_desc())
+  # fisheye_eval.print_results()
 
   stat = fisheye_eval.get_stats()
     
@@ -124,4 +130,3 @@ if __name__ == "__main__":
   run.log({"metrics/conf_mat(B)": wandb.Image("results/confusion_matrix_normalized.png")})
   run.log({"Table": table})
   run.finish()
-  
