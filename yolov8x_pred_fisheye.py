@@ -23,9 +23,9 @@ if __name__ == "__main__":
   config = {"conf": args.conf,
             "iou" : args.iou}
   
-  run = wandb.init(project="fisheye-challenge", name="yolov8x-dcn-1280-lr2e-5-mosaic_pred", config=config)
+  run = wandb.init(project="fisheye-challenge", name="yolov8x-dcn-1280-lr2e-5-wd-mosaic_pred", config=config)
 
-  art = run.use_artifact("g1y5x3/fisheye-challenge/run_dba333jb_model:best")
+  art = run.use_artifact("g1y5x3/fisheye-challenge/run_zh55zy10_model:best")
   art_dir = art.download()
 
   data_dir = "/workspace/FishEye8k/test_images/"

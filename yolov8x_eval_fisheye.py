@@ -19,28 +19,29 @@ if __name__ == "__main__":
   parser.add_argument('-conf', type=float, default=0.001, help="confidence threshold")
   parser.add_argument('-iou',  type=float, default=0.5,  help="iou threshold")
   parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="model yaml file")
-  parser.add_argument('-weight', type=str, default="yolov8x_dcn.yaml", help="weights being used for eval")
-  parser.add_argument('-name', type=str, default="yolov8x_dcn.yaml", help="name of the experiment")
-  parser.add_argument('-time', type=str, default="yolov8x_dcn.yaml", help="name of the experiment")
+  parser.add_argument('-weight', type=str, default="run_zh55zy10_model:best", help="weights being used for eval")
+  parser.add_argument('-name', type=str, default="yolov8x-dcn_eval", help="name of the experiment")
+  parser.add_argument('-time', type=str, default=["M", "A", "E", "N"], help="name of the experiment")
   args = parser.parse_args()
 
   config = {"conf": args.conf,
             "iou" : args.iou}
   
-  run = wandb.init(project="fisheye-challenge", name="yolov8x-dcn-1280-lr2e-5-mosaic_eval_E", config=config)
+  run = wandb.init(project="fisheye-challenge", name=args.name, config=config)
 
-  art = run.use_artifact("g1y5x3/fisheye-challenge/run_dba333jb_model:best")
+  art = run.use_artifact(f"g1y5x3/fisheye-challenge/{args.weight}")
   art_dir = art.download()
 
   data_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/images/"
-
   with open("/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/test.json") as f:
     images = json.load(f)
   files = images["images"]
-  print(files)
 
+  print(args.time)
   # Filter images
-  files = [dict for dict in files if "E" in dict["file_name"]]
+  if len(args.time) == 1:
+    files = [dict for dict in files if args.time in dict["file_name"]]
+
   print(files)
 
   # Load ground truth and predictions
@@ -48,7 +49,11 @@ if __name__ == "__main__":
   with open(gt_dir) as f: gts = json.load(f)
   gt_img, gt_ann = gts["images"], gts["annotations"]
 
-  image_list = [img["file_name"] for img in gt_img if "E" in img["file_name"]]
+  if len(args.time) == 1:
+    image_list = [img["file_name"] for img in gt_img if args.time in img["file_name"]]
+  else:
+    image_list = [img["file_name"] for img in gt_img]
+
   sources = [data_dir+img["file_name"] for img in files]
   print(f"Total data for inference {len(sources)}")
   model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
