@@ -16,9 +16,12 @@ if __name__ == "__main__":
   torch_utils.get_flops = get_flops_pass
 
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
-  parser.add_argument('-conf', type=float, default=0.001, help="batch size")
-  parser.add_argument('-iou',  type=float, default=0.5,  help="number of workers")
-  parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="batch size")
+  parser.add_argument('-conf', type=float, default=0.001, help="confidence threshold")
+  parser.add_argument('-iou',  type=float, default=0.5,  help="iou threshold")
+  parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="model yaml file")
+  parser.add_argument('-weight', type=str, default="yolov8x_dcn.yaml", help="weights being used for eval")
+  parser.add_argument('-name', type=str, default="yolov8x_dcn.yaml", help="name of the experiment")
+  parser.add_argument('-time', type=str, default="yolov8x_dcn.yaml", help="name of the experiment")
   args = parser.parse_args()
 
   config = {"conf": args.conf,
