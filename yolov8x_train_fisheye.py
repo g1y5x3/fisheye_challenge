@@ -5,7 +5,7 @@ Making sure --nproc_per_node and -devices has the same param.
 python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -devices 2 -epoch 1 -bs 32
 
 """
-import torch, json, wandb, argparse
+import copy, torch, json, wandb, argparse
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from ultralytics.nn.tasks import DetectionModel
@@ -16,51 +16,145 @@ import ultralytics.nn.tasks as tasks
 import ultralytics.utils.torch_utils as torch_utils
 from ultralytics.data.augment import Albumentations
 from ultralytics.models.yolo.detect.train import DetectionTrainer
+from ultralytics.engine.validator import BaseValidator
 from yolov8_monkey_patches import albumentation_init, load_model_custom, get_flops_pass, parse_dcn_model  
+from ultralytics.cfg import get_cfg, get_save_dir
+from ultralytics.data.utils import check_cls_dataset, check_det_dataset
+from ultralytics.nn.autobackend import AutoBackend
+from ultralytics.utils import LOGGER, TQDM, callbacks, colorstr, emojis
+from ultralytics.utils.checks import check_imgsz
+from ultralytics.utils.ops import Profile
+from ultralytics.utils.torch_utils import de_parallel, select_device, smart_inference_mode
 
-# TODO: there might some bugs with calling cocoeval
-# the default json was saved with "file_name" instead, saving as "image_id" makes it easier to 
-# compute benchmarks # with cocoapi
-def save_eval_json_with_id(validator):
-  if not validator.training:
-    pred_dir = "results/yolo_predictions.json"
-    for pred in validator.jdict:
-      pred["image_id"] = get_image_id(pred["image_id"])
+def new_call(self, trainer=None, model=None):
+    """Supports validation of a pre-trained model if passed or a model being trained if trainer is passed (trainer
+    gets priority).
+    """
+    self.training = trainer is not None
+    augment = self.args.augment and (not self.training)
+    if self.training:
+        self.device = trainer.device
+        self.data = trainer.data
+        self.args.half = self.device.type != "cpu"  # force FP16 val during training
+        model = trainer.ema.ema or trainer.model
+        model = model.half() if self.args.half else model.float()
+        # self.model = model
+        print("adding loss")
+        self.loss = torch.zeros_like(trainer.loss_items, device=trainer.device)
+        self.loss_center = torch.zeros_like(trainer.loss_items, device=trainer.device)
+        self.loss_edge = torch.zeros_like(trainer.loss_items, device=trainer.device)
+        self.args.plots &= trainer.stopper.possible_stop or (trainer.epoch == trainer.epochs - 1)
+        model.eval()
+    else:
+        callbacks.add_integration_callbacks(self)
+        model = AutoBackend(
+            weights=model or self.args.model,
+            device=select_device(self.args.device, self.args.batch),
+            dnn=self.args.dnn,
+            data=self.args.data,
+            fp16=self.args.half,
+        )
+        # self.model = model
+        self.device = model.device  # update device
+        self.args.half = model.fp16  # update half
+        stride, pt, jit, engine = model.stride, model.pt, model.jit, model.engine
+        imgsz = check_imgsz(self.args.imgsz, stride=stride)
+        if engine:
+            self.args.batch = model.batch_size
+        elif not pt and not jit:
+            self.args.batch = 1  # export.py models default to batch-size 1
+            LOGGER.info(f"Forcing batch=1 square inference (1,3,{imgsz},{imgsz}) for non-PyTorch models")
 
-    with open(pred_dir, "w") as f:
-      LOGGER.info(f"Saving {pred_dir}...")
-      json.dump(validator.jdict, f)
+        if str(self.args.data).split(".")[-1] in ("yaml", "yml"):
+            self.data = check_det_dataset(self.args.data)
+        elif self.args.task == "classify":
+            self.data = check_cls_dataset(self.args.data, split=self.args.split)
+        else:
+            raise FileNotFoundError(emojis(f"Dataset '{self.args.data}' for task={self.args.task} not found ❌"))
 
-    artifact = wandb.Artifact(type="results", name=f"run_{wandb.run.id}_results")
-    artifact.add_file(local_path=pred_dir)
-    wandb.run.log_artifact(artifact)
+        if self.device.type in ("cpu", "mps"):
+            self.args.workers = 0  # faster CPU val as time dominated by inference, not dataloading
+        if not pt:
+            self.args.rect = False
+        self.stride = model.stride  # used in get_dataloader() for padding
+        self.dataloader = self.dataloader or self.get_dataloader(self.data.get(self.args.split), self.args.batch)
 
-    anno_dir = "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/test/test.json"
-    anno = COCO(anno_dir)
-    pred = anno.loadRes(pred_dir)
-    fisheye_eval = COCOeval(anno, pred, "bbox")
-    print(fisheye_eval.params.areaRng)
-    fisheye_eval.evaluate()
-    fisheye_eval.accumulate()
-    fisheye_eval.summarize()
-      
-    # log the mAP50-95 standard from the challenge
-    wandb.run.log({"metrics/mAP50-95(maxDetx100)": fisheye_eval.stats[0]}, validator.args.epochs)
+        model.eval()
+        model.warmup(imgsz=(1 if pt else self.args.batch, 3, imgsz, imgsz))  # warmup
 
-def check_dcn_weights_offsets(trainer):
-  print("This is CALLBACK!")
-  print(f"p1.offset_conv {trainer.model.model[0].offset_conv}")
-  print(f"p1.offset_conv {trainer.model.model[0].offset_conv.weight.shape}")
-  print(f"p1.mask_conv {trainer.model.model[0].mask_conv}")
-  print(f"p1.mask_conv {trainer.model.model[0].mask_conv.weight.shape}")
-  print(f"p2.offset_conv {trainer.model.model[1].offset_conv}")
-  print(f"p2.offset_conv {trainer.model.model[1].offset_conv.weight.shape}")
-  print(f"p2.mask_conv {trainer.model.model[1].mask_conv}")
-  print(f"p2.mask_conv {trainer.model.model[1].mask_conv.weight.shape}")
+    self.run_callbacks("on_val_start")
+    dt = (
+        Profile(device=self.device),
+        Profile(device=self.device),
+        Profile(device=self.device),
+        Profile(device=self.device),
+    )
+    bar = TQDM(self.dataloader, desc=self.get_desc(), total=len(self.dataloader))
+    self.init_metrics(de_parallel(model))
+    self.jdict = []  # empty before each val
+
+    for batch_i, batch in enumerate(bar):
+        self.run_callbacks("on_val_batch_start")
+        self.batch_i = batch_i
+        # Preprocess
+        with dt[0]:
+            batch = self.preprocess(batch)
+
+        # Inference
+        with dt[1]:
+            preds = model(batch["img"], augment=augment)
+
+        # Loss
+        with dt[2]:
+            if self.training:
+                self.loss += model.loss(batch, preds)[1]
+
+        # Postprocess
+        with dt[3]:
+            preds = self.postprocess(preds)
+
+        #print("preds")
+        #print(len(preds))
+        #print(preds[0].shape)
+        #print("batch")
+        #print(len(batch))
+        #print(batch["bboxes"].shape)
+
+        self.update_metrics(preds, batch)
+
+        if self.args.plots and batch_i < 3:
+            self.plot_val_samples(batch, batch_i)
+            self.plot_predictions(batch, preds, batch_i)
+
+        self.run_callbacks("on_val_batch_end")
+    stats = self.get_stats()
+    self.check_stats(stats)
+    self.speed = dict(zip(self.speed.keys(), (x.t / len(self.dataloader.dataset) * 1e3 for x in dt)))
+    self.finalize_metrics()
+    self.print_results()
+    self.run_callbacks("on_val_end")
+    if self.training:
+        model.float()
+        results = {**stats, **trainer.label_loss_items(self.loss.cpu() / len(self.dataloader), prefix="val")}
+        return {k: round(float(v), 5) for k, v in results.items()}  # return results as 5 decimal place floats
+    else:
+        LOGGER.info(
+            "Speed: %.1fms preprocess, %.1fms inference, %.1fms loss, %.1fms postprocess per image"
+            % tuple(self.speed.values())
+        )
+        if self.args.save_json and self.jdict:
+            with open(str(self.save_dir / "predictions.json"), "w") as f:
+                LOGGER.info(f"Saving {f.name}...")
+                json.dump(self.jdict, f)  # flatten and save
+            stats = self.eval_json(stats)  # update stats
+        if self.args.plots or self.args.save_json:
+            LOGGER.info(f"Results saved to {colorstr('bold', self.save_dir)}")
+        return stats
 
 if __name__ == "__main__":
 
   # monkey patches
+  BaseValidator.__call__ = new_call 
   Albumentations.__init__ = albumentation_init
   DetectionTrainer.get_model = load_model_custom
   tasks.parse_model = parse_dcn_model
