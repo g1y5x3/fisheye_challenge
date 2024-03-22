@@ -8,6 +8,7 @@ from ultralytics.utils.metrics import ap_per_class
 from utils import bounding_boxes, FisheyeDetectionValidator
 from ultralytics.models.yolo.detect.train import DetectionTrainer
 from yolov8_monkey_patches import load_model_custom, parse_dcn_model, get_flops_pass
+from ultralytics import RTDETR
 
 if __name__ == "__main__":
   # monkey patches
@@ -56,7 +57,8 @@ if __name__ == "__main__":
 
   sources = [data_dir+img["file_name"] for img in files]
   print(f"Total data for inference {len(sources)}")
-  model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
+  # model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
+  model = RTDETR(f"{art_dir}/best.pt") # model was trained on COCO dataset
   result_json = []
   for i in range(len(sources)//128+1):
     start = i*128

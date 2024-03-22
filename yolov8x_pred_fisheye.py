@@ -2,7 +2,7 @@ import os, cv2, torch, json, wandb, argparse
 import numpy as np
 import ultralytics.nn.tasks as tasks
 import ultralytics.utils.torch_utils as torch_utils
-from ultralytics import YOLO
+from ultralytics import YOLO, RTDETR
 from ultralytics.utils import ops
 from utils import bounding_boxes_pred, get_image_id
 from ultralytics.models.yolo.detect.train import DetectionTrainer
@@ -23,7 +23,7 @@ if __name__ == "__main__":
   config = {"conf": args.conf,
             "iou" : args.iou}
   
-  run = wandb.init(project="fisheye-challenge", name="yolov8x-dcn-1280-lr2e-5-wd-mosaic_pred", config=config)
+  run = wandb.init(project="fisheye-challenge", name="rt-detr_pred", config=config)
 
   art = run.use_artifact("g1y5x3/fisheye-challenge/run_zh55zy10_model:best")
   art_dir = art.download()
