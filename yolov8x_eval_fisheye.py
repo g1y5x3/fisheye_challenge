@@ -57,9 +57,10 @@ if __name__ == "__main__":
 
   sources = [data_dir+img["file_name"] for img in files]
   print(f"Total data for inference {len(sources)}")
-  # model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
-  model = RTDETR(f"{art_dir}/best.pt") # model was trained on COCO dataset
+  model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
+  # model = RTDETR(f"{art_dir}/best.pt") # model was trained on COCO dataset
   result_json = []
+
   for i in range(len(sources)//128+1):
     start = i*128
     end = (i+1)*128 if i <= 20 else -1 
@@ -127,7 +128,7 @@ if __name__ == "__main__":
   print("Confusion Matrix:")
   print(fisheye_eval.confusion_matrix.matrix)
   fisheye_eval.confusion_matrix.plot(save_dir="results", names=tuple(class_name.values()))
-
+  fisheye_eval.
   # print(fisheye_eval.get_desc())
   # fisheye_eval.print_results()
 

@@ -25,7 +25,7 @@ if __name__ == "__main__":
   
   run = wandb.init(project="fisheye-challenge", name="rt-detr_pred", config=config)
 
-  art = run.use_artifact("g1y5x3/fisheye-challenge/run_zh55zy10_model:best")
+  art = run.use_artifact("g1y5x3/fisheye-challenge/run_1wcpkt5d_model:best")
   art_dir = art.download()
 
   data_dir = "/workspace/FishEye8k/test_images/"
@@ -33,7 +33,8 @@ if __name__ == "__main__":
   sources = [data_dir+img for img in files]
   print(f"Total data for inference {len(sources)}")
 
-  model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
+  # model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
+  model = RTDETR(f"{art_dir}/best.pt") # model was trained on COCO dataset
 
   result_json = []
   result_dict = []
