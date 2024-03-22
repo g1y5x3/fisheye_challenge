@@ -90,7 +90,7 @@ if __name__ == "__main__":
                     optimizer="AdamW", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
                     close_mosaic=10,
-                    degrees=0.0, translate=0.1, scale=0.5, shear=0.0,
+                    degrees=45, translate=0.1, scale=0.0, shear=0.0,
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
                     mosaic=1.0, mixup=0.0,
                     deterministic=True, verbose=True,

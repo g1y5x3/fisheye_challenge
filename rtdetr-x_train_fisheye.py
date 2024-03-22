@@ -13,7 +13,7 @@ from ultralytics.utils import RANK
 
 def load_model(self, cfg=None, weights=None, verbose=True):
   model = RTDETRDetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
-  weights, _ = attempt_load_one_weight("checkpoints/rtdetr-l.pt")
+  weights, _ = attempt_load_one_weight("checkpoints/rtdetr-x.pt")
   model.load(weights)
   return model
 
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
   parser = argparse.ArgumentParser(description="fisheye experiment")
   parser.add_argument('-devices', type=int, default=1, help="batch size")
-  parser.add_argument('-model', type=str, default="rtdetr-l.yaml", help="model file name")
+  parser.add_argument('-model', type=str, default="rtdetr-x.yaml", help="model file name")
   parser.add_argument('-imgsz', type=int, default=1280, help="image size used for training")
   parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
   parser.add_argument('-epoch', type=int, default=1, help="number of epoch")
