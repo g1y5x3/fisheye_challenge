@@ -25,6 +25,89 @@ from ultralytics.utils import LOGGER, TQDM, callbacks, colorstr, emojis
 from ultralytics.utils.checks import check_imgsz
 from ultralytics.utils.ops import Profile
 from ultralytics.utils.torch_utils import de_parallel, select_device, smart_inference_mode
+from ultralytics.models.yolo.detect.val import DetectionValidator
+from ultralytics.data import build_dataloader, build_yolo_dataset, converter
+from ultralytics.utils import LOGGER, ops
+from ultralytics.utils.checks import check_requirements
+from ultralytics.utils.metrics import ConfusionMatrix, DetMetrics, box_iou
+from ultralytics.utils.plotting import output_to_target, plot_images
+
+def update_metrics_new(self, preds, batch):
+    """Metrics."""
+    for si, pred in enumerate(preds):
+        self.seen += 1
+        npr = len(pred)
+        stat = dict(
+            conf=torch.zeros(0, device=self.device),
+            pred_cls=torch.zeros(0, device=self.device),
+            tp=torch.zeros(npr, self.niou, dtype=torch.bool, device=self.device),
+        )
+        pbatch = self._prepare_batch(si, batch)
+        cls, bbox = pbatch.pop("cls"), pbatch.pop("bbox")
+        nl = len(cls)
+        stat["target_cls"] = cls
+        if npr == 0:
+            if nl:
+                for k in self.stats.keys():
+                    self.stats[k].append(stat[k])
+                if self.args.plots:
+                    self.confusion_matrix.process_batch(detections=None, gt_bboxes=bbox, gt_cls=cls)
+            continue
+
+        # Predictions
+        if self.args.single_cls:
+            pred[:, 5] = 0
+        predn = self._prepare_pred(pred, pbatch)
+        stat["conf"] = predn[:, 4]
+        stat["pred_cls"] = predn[:, 5]
+
+        print("FROM MONKEY PATCH")
+        print("predn")
+        print(predn.shape)
+        print("bbox")
+        print(bbox.shape)
+        print("cls")
+        print(cls.shape)
+        print("FROM MONKEY PATCH")
+
+        # Evaluate
+        if nl:
+            stat["tp"] = self._process_batch(predn, bbox, cls)
+            if self.args.plots:
+                self.confusion_matrix.process_batch(predn, bbox, cls)
+        for k in self.stats.keys():
+            self.stats[k].append(stat[k])
+
+        # Save
+        if self.args.save_json:
+            self.pred_to_json(predn, batch["im_file"][si])
+        if self.args.save_txt:
+            file = self.save_dir / "labels" / f'{Path(batch["im_file"][si]).stem}.txt'
+            self.save_one_txt(predn, self.args.save_conf, pbatch["ori_shape"], file)
+
+def init_metrics_new(self, model):
+    """Initialize evaluation metrics for YOLO."""
+    val = self.data.get(self.args.split, "")  # validation path
+    self.is_coco = isinstance(val, str) and "coco" in val and val.endswith(f"{os.sep}val2017.txt")  # is COCO
+    self.class_map = converter.coco80_to_coco91_class() if self.is_coco else list(range(1000))
+    self.args.save_json |= self.is_coco and not self.training  # run on final val if training COCO
+    self.names = model.names
+    self.nc = len(model.names)
+    self.metrics.names = self.names
+    self.metrics.plot = self.args.plots
+
+    # add more metrics tracking
+    self.confusion_matrix = ConfusionMatrix(nc=self.nc, conf=self.args.conf)
+    self.confusion_matrix_center = ConfusionMatrix(nc=self.nc, conf=self.args.conf)
+    self.confusion_matrix_edge = ConfusionMatrix(nc=self.nc, conf=self.args.conf)
+
+    self.seen = 0
+    self.jdict = []
+
+    # add more metrics tracking
+    self.stats = dict(tp=[], conf=[], pred_cls=[], target_cls=[])
+    self.stats_center = dict(tp=[], conf=[], pred_cls=[], target_cls=[])
+    self.stats_edge = dict(tp=[], conf=[], pred_cls=[], target_cls=[])
 
 def new_call(self, trainer=None, model=None):
     """Supports validation of a pre-trained model if passed or a model being trained if trainer is passed (trainer
@@ -155,6 +238,8 @@ if __name__ == "__main__":
 
   # monkey patches
   BaseValidator.__call__ = new_call 
+  DetectionValidator.init_metrics = init_metrics_new
+  DetectionValidator.update_metrics = update_metrics_new
   Albumentations.__init__ = albumentation_init
   DetectionTrainer.get_model = load_model_custom
   tasks.parse_model = parse_dcn_model
