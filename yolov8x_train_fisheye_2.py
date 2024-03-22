@@ -6,9 +6,19 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 
 """
 import argparse
+from ultralytics.nn.tasks import RTDETRDetectionModel
 from ultralytics.models.rtdetr.train import RTDETRTrainer
+from ultralytics.nn.tasks import attempt_load_one_weight
+from ultralytics.utils import RANK
+
+def load_model(self, cfg=None, weights=None, verbose=True):
+  model = RTDETRDetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
+  weights, _ = attempt_load_one_weight("checkpoints/rtdetr-l.pt")
+  model.load(weights)
+  return model
 
 if __name__ == "__main__":
+  RTDETRTrainer.get_model = load_model
 
   parser = argparse.ArgumentParser(description="fisheye experiment")
   parser.add_argument('-devices', type=int, default=1, help="batch size")
@@ -26,6 +36,7 @@ if __name__ == "__main__":
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
+  #https://github.com/ultralytics/assets/releases/download/v8.1.0/rtdetr-l.pt
   train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=args.imgsz, fraction=args.frac,
                     exist_ok=True,
