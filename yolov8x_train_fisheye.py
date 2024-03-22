@@ -61,7 +61,7 @@ def update_metrics_new(self, preds, batch):
         stat["conf"] = predn[:, 4]
         stat["pred_cls"] = predn[:, 5]
 
-        print("FROM MONKEY PATCH")
+        print("FROM MONKEY PATCHt")
         print("predn")
         print(predn.shape)
         print("bbox")
@@ -195,13 +195,6 @@ def new_call(self, trainer=None, model=None):
         # Postprocess
         with dt[3]:
             preds = self.postprocess(preds)
-
-        #print("preds")
-        #print(len(preds))
-        #print(preds[0].shape)
-        #print("batch")
-        #print(len(batch))
-        #print(batch["bboxes"].shape)
 
         self.update_metrics(preds, batch)
 
