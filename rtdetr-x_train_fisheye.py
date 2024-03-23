@@ -6,10 +6,35 @@ python -m torch.distributed.run --nproc_per_node 2 yolov8x_train_fisheye.py -dev
 
 """
 import argparse
+from yolov8_monkey_patches import albumentation_init
+from ultralytics.data.augment import Albumentations
 from ultralytics.nn.tasks import RTDETRDetectionModel
 from ultralytics.models.rtdetr.train import RTDETRTrainer
 from ultralytics.nn.tasks import attempt_load_one_weight
-from ultralytics.utils import RANK
+from ultralytics.utils import LOGGER, RANK, colorstr
+
+def albumentation_init(self, p=1.0):
+  """Initialize the transform object for YOLO bbox formatted params."""
+  self.p = p
+  self.transform = None
+  prefix = colorstr("albumentations: ")
+  try:
+    import albumentations as A
+
+    # check_version(A.__version__, "1.0.3", hard=True)  # version requirement
+
+    # Transforms
+    T = [
+      A.RandomBrightnessContrast(p=0.01),
+    ]
+    self.transform = A.Compose(T, bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]))
+
+    LOGGER.info(prefix + ", ".join(f"{x}".replace("always_apply=False, ", "") for x in T if x.p))
+  except ImportError:  # package not installed, skip
+    pass
+  except Exception as e:
+    LOGGER.info(f"{prefix}{e}")
+
 
 def load_model(self, cfg=None, weights=None, verbose=True):
   model = RTDETRDetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
@@ -19,6 +44,7 @@ def load_model(self, cfg=None, weights=None, verbose=True):
 
 if __name__ == "__main__":
   RTDETRTrainer.get_model = load_model
+  Albumentations.__init__ = albumentation_init
 
   parser = argparse.ArgumentParser(description="fisheye experiment")
   parser.add_argument('-devices', type=int, default=1, help="batch size")
@@ -29,7 +55,7 @@ if __name__ == "__main__":
   parser.add_argument('-bs', type=int, default=16, help="number of batches")
   parser.add_argument('-wd', type=float, default=0.0005, help="weight decay")
   parser.add_argument('-conf', type=float, default=0.001, help="confidence threshold")
-  parser.add_argument('-iou', type=float, default=0.5, help="intersection of union")
+  parser.add_argument('-iou', type=float, default=0.45, help="intersection of union")
   parser.add_argument('-project', type=str, default="fisheye-challenge", help="project name")
   parser.add_argument('-name', type=str, default="yolov8x", help="run name")
   args = parser.parse_args()
@@ -41,13 +67,13 @@ if __name__ == "__main__":
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=args.imgsz, fraction=args.frac,
                     exist_ok=True,
                     conf=args.conf, iou=args.iou,
-                    lr0=2e-4, warmup_bias_lr=2e-4/3, weight_decay=args.wd,
+                    lr0=1e-4, warmup_bias_lr=1e-4/3, weight_decay=args.wd,
                     optimizer="AdamW", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
-                    close_mosaic=10,
+                    close_mosaic=0,
                     degrees=0.0, translate=0.1, scale=0.5, shear=0.0,
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
-                    mosaic=1.0, mixup=0.0,
+                    mosaic=0.0, mixup=0.0,
                     deterministic=True, verbose=True,
                     pretrained=True)
 
