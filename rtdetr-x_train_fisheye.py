@@ -21,11 +21,11 @@ def albumentation_init(self, p=1.0):
   try:
     import albumentations as A
 
-    # check_version(A.__version__, "1.0.3", hard=True)  # version requirement
-
     # Transforms
     T = [
-      A.RandomBrightnessContrast(p=0.01),
+      A.ToGray(p=0.5),
+      A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=0, p=0.5),
+      A.RandomBrightnessContrast(brightness_limit=(-0.4, 0.1), contrast_limit=(-0.2, 0.2), p=0.5),
     ]
     self.transform = A.Compose(T, bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]))
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
   parser.add_argument('-frac', type=float, default=1.0, help="fraction of the data being used")
   parser.add_argument('-epoch', type=int, default=1, help="number of epoch")
   parser.add_argument('-bs', type=int, default=16, help="number of batches")
-  parser.add_argument('-wd', type=float, default=0.0005, help="weight decay")
+  parser.add_argument('-wd', type=float, default=0.0025, help="weight decay")
   parser.add_argument('-conf', type=float, default=0.001, help="confidence threshold")
   parser.add_argument('-iou', type=float, default=0.45, help="intersection of union")
   parser.add_argument('-project', type=str, default="fisheye-challenge", help="project name")
