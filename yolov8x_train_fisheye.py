@@ -61,14 +61,14 @@ def update_metrics_new(self, preds, batch):
         stat["conf"] = predn[:, 4]
         stat["pred_cls"] = predn[:, 5]
 
-        print("FROM MONKEY PATCHt")
-        print("predn")
-        print(predn.shape)
-        print("bbox")
-        print(bbox.shape)
-        print("cls")
-        print(cls.shape)
-        print("FROM MONKEY PATCH")
+        #print("FROM MONKEY PATCHt")
+        #print("predn")
+        #print(predn.shape)
+        #print("bbox")
+        #print(bbox.shape)
+        #print("cls")
+        #print(cls.shape)
+        #print("FROM MONKEY PATCH")
 
         # Evaluate
         if nl:
@@ -124,8 +124,17 @@ def new_call(self, trainer=None, model=None):
         # self.model = model
         print("adding loss")
         self.loss = torch.zeros_like(trainer.loss_items, device=trainer.device)
+
         self.loss_center = torch.zeros_like(trainer.loss_items, device=trainer.device)
         self.loss_edge = torch.zeros_like(trainer.loss_items, device=trainer.device)
+
+        print(f"loss {self.loss_center}")
+
+        self.loss_morning = torch.zeros_like(trainer.loss_items, device=trainer.device)
+        self.loss_afternoon = torch.zeros_like(trainer.loss_items, device=trainer.device)
+        self.loss_evening = torch.zeros_like(trainer.loss_items, device=trainer.device)
+        self.loss_night = torch.zeros_like(trainer.loss_items, device=trainer.device)
+
         self.args.plots &= trainer.stopper.possible_stop or (trainer.epoch == trainer.epochs - 1)
         model.eval()
     else:
@@ -188,6 +197,26 @@ def new_call(self, trainer=None, model=None):
             preds = model(batch["img"], augment=augment)
 
         # Loss
+        print("\n")
+        print("pred")
+        print(len(preds))
+        print(preds[0].shape)
+        print(len(preds[1]))
+        print(preds[1][0].shape)
+        print(preds[1][1].shape)
+        print(preds[1][2].shape)
+
+        print("batch")
+        print(len(batch["im_file"]))
+        print(batch["bboxes"].shape)
+        dis = batch["bboxes"][:,0]**2 + batch["bboxes"][:,1]**2
+        print(dis.shape)
+        print(f"edge {sum(dis>0.125)}")
+        print(f"center {sum(dis<0.125)}")
+        # for key, value in batch.items():
+        #   if key == "bboxes":
+        #     print(value[:2])
+
         with dt[2]:
             if self.training:
                 self.loss += model.loss(batch, preds)[1]
