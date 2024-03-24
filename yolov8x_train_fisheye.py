@@ -197,26 +197,14 @@ def new_call(self, trainer=None, model=None):
         with dt[1]:
             preds = model(batch["img"], augment=augment)
 
-        # Loss
-        # print("\n")
-        # print("pred")
-        # print(len(preds))
-        # print(preds[0].shape)
-        # print(len(preds[1]))
-        # print(preds[1][0].shape)
-        # print(preds[1][1].shape)
-        # print(preds[1][2].shape)
-
-        # print("batch")
-        # print(len(batch["im_file"]))
-        # print(batch["bboxes"].shape)
-        # dis = batch["bboxes"][:,0]**2 + batch["bboxes"][:,1]**2
-        # print(dis.shape)
-        # print(f"edge {torch.sum(dis>0.125)}")
-        # print(f"center {torch.sum(dis<0.125)}")
-        # for key, value in batch.items():
-        #   if key == "bboxes":
-        #     print(value[:2])
+        print("\n")
+        print("pred")
+        print(len(preds))
+        print(preds[0].shape)
+        print(len(preds[1]))
+        print(preds[1][0].shape)
+        print(preds[1][1].shape)
+        print(preds[1][2].shape)
 
         with dt[2]:
             if self.training:
@@ -225,6 +213,23 @@ def new_call(self, trainer=None, model=None):
         # Postprocess
         with dt[3]:
             preds = self.postprocess(preds)
+
+        print("===== after postprocess  =====")
+        print("pred")
+        print(len(preds))
+        print(preds[0].shape)
+        print(len(preds[1]))
+        print(preds[1][0].shape)
+        print(preds[1][1].shape)
+        print(preds[1][2].shape)
+
+        print("batch")
+        print(len(batch["im_file"]))
+        print(batch["bboxes"].shape)
+        dis = batch["bboxes"][:,0]**2 + batch["bboxes"][:,1]**2
+        print(dis.shape)
+        print(f"edge {torch.sum(dis>0.125)}")
+        print(f"center {torch.sum(dis<0.125)}")
 
         self.update_metrics(preds, batch)
 
