@@ -32,32 +32,31 @@ def load_model_custom(self, cfg=None, weights=None, verbose=True):
   return model
 
 if __name__ == "__main__":
-  # model = YOLO(f"checkpoints/best.pt")
-  # print(model)
+  model = YOLO(f"checkpoints/best.pt")
 
-  # data_dir = "/workspace/FishEye8k/test_images/"
-  # files = [f for f in os.listdir(data_dir)]
-  # sources = [data_dir+img for img in files]
-  # print(f"Total data for inference {len(sources)}")
+  data_dir = "/workspace/FishEye8k/test_images/"
+  files = [f for f in os.listdir(data_dir)]
+  sources = [data_dir+img for img in files]
+  print(f"Total data for inference {len(sources)}")
 
-  # for i in range(len(sources)//128+1):
-  #   start = i*128
-  #   end = (i+1)*128 if i <= 20 else -1 
+  for i in range(len(sources)//128+1):
+    start = i*128
+    end = (i+1)*128 if i <= 20 else -1
 
-  #   results = model.predict(sources[start:end], imgsz=1280, 
-  #                           conf=0.5, iou=0.5, 
-  #                           stream=False, verbose=True, save_txt=True)
+    results = model.predict(sources[start:end], imgsz=1280,
+                            conf=0.5, iou=0.5,
+                            stream=False, verbose=True, save_txt=True)
 
-  # # copy both images and labels to the training directory
-  # for file in os.listdir("/workspace/FishEye8k/test_images"):
-  #   print(file)
-  #   shutil.copy("/workspace/FishEye8k/test_images"+"/"+file,
-  #               "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/images"+"/"+file)
+  # copy both images and labels to the training directory
+  for file in os.listdir("/workspace/FishEye8k/test_images"):
+    print(file)
+    shutil.copy("/workspace/FishEye8k/test_images"+"/"+file,
+                "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/images"+"/"+file)
 
-  # for file in os.listdir("/usr/src/ultralytics/runs/detect/predict/labels"):
-  #   print(file)
-  #   shutil.copy("/usr/src/ultralytics/runs/detect/predict/labels"+"/"+file,
-  #               "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels"+"/"+file)
+  for file in os.listdir("/usr/src/ultralytics/runs/detect/predict/labels"):
+    print(file)
+    shutil.copy("/usr/src/ultralytics/runs/detect/predict/labels"+"/"+file,
+                "/workspace/FishEye8k/dataset/Fisheye8K_all_including_train/train/labels"+"/"+file)
 
   # monkey patches
   Albumentations.__init__ = albumentation_init
