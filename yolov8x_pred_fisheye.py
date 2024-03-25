@@ -15,17 +15,17 @@ if __name__ == "__main__":
   torch_utils.get_flops = get_flops_pass
 
   parser = argparse.ArgumentParser(description="yolov8x fisheye experiment")
-  parser.add_argument('-conf', type=float, default=0.5, help="batch size")
-  parser.add_argument('-iou',  type=float, default=0.5,  help="number of workers")
+  parser.add_argument('-conf', type=float, default=0.25, help="batch size")
+  parser.add_argument('-iou',  type=float, default=0.45,  help="number of workers")
   parser.add_argument('-model', type=str, default="yolov8x_dcn.yaml", help="batch size")
   args = parser.parse_args()
 
   config = {"conf": args.conf,
             "iou" : args.iou}
   
-  run = wandb.init(project="fisheye-challenge", name="rt-detr_pred", config=config)
+  run = wandb.init(project="fisheye-challenge", name="rtdetr-x-pred", config=config)
 
-  art = run.use_artifact("g1y5x3/fisheye-challenge/run_1wcpkt5d_model:best")
+  art = run.use_artifact("g1y5x3/fisheye-challenge/run_yq804z0x_model:best")
   art_dir = art.download()
 
   data_dir = "/workspace/FishEye8k/test_images/"
@@ -33,7 +33,7 @@ if __name__ == "__main__":
   sources = [data_dir+img for img in files]
   print(f"Total data for inference {len(sources)}")
 
-  # model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
+  #model = YOLO(f"{art_dir}/best.pt") # model was trained on COCO dataset
   model = RTDETR(f"{art_dir}/best.pt") # model was trained on COCO dataset
 
   result_json = []
