@@ -13,29 +13,6 @@ from ultralytics.models.rtdetr.train import RTDETRTrainer
 from ultralytics.nn.tasks import attempt_load_one_weight
 from ultralytics.utils import LOGGER, RANK, colorstr
 
-def albumentation_init(self, p=1.0):
-  """Initialize the transform object for YOLO bbox formatted params."""
-  self.p = p
-  self.transform = None
-  prefix = colorstr("albumentations: ")
-  try:
-    import albumentations as A
-
-    # Transforms
-    T = [
-      A.ToGray(p=0.5),
-      A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=0, p=0.5),
-      A.RandomBrightnessContrast(brightness_limit=(-0.4, 0.1), contrast_limit=(-0.2, 0.2), p=0.5),
-    ]
-    self.transform = A.Compose(T, bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"]))
-
-    LOGGER.info(prefix + ", ".join(f"{x}".replace("always_apply=False, ", "") for x in T if x.p))
-  except ImportError:  # package not installed, skip
-    pass
-  except Exception as e:
-    LOGGER.info(f"{prefix}{e}")
-
-
 def load_model(self, cfg=None, weights=None, verbose=True):
   model = RTDETRDetectionModel(cfg, nc=self.data["nc"], verbose=verbose and RANK == -1)
   weights, _ = attempt_load_one_weight("checkpoints/rtdetr-x.pt")
@@ -62,18 +39,17 @@ if __name__ == "__main__":
   
   device = 0 if args.devices == 1 else [i for i in range(args.devices)]
 
-  #https://github.com/ultralytics/assets/releases/download/v8.1.0/rtdetr-l.pt
   train_args = dict(project=args.project, name=args.name, model=args.model, data="fisheye.yaml",
                     device=device, epochs=args.epoch, batch=args.bs, imgsz=args.imgsz, fraction=args.frac,
                     exist_ok=True,
                     conf=args.conf, iou=args.iou,
-                    lr0=1e-4, warmup_bias_lr=1e-4/3, weight_decay=args.wd,
+                    lr0=2e-5, warmup_bias_lr=2e-5/3, weight_decay=args.wd,
                     optimizer="AdamW", seed=0,
                     box=7.5, cls=0.5, dfl=1.5,
-                    close_mosaic=0,
-                    degrees=0.0, translate=0.1, scale=0.5, shear=0.0,
+                    close_mosaic=10,
+                    degrees=0.0, translate=0.1, scale=0.0, shear=0.0,
                     perspective=0.0, flipud=0.0, fliplr=0.5, 
-                    mosaic=0.0, mixup=0.0,
+                    mosaic=1.0, mixup=0.0,
                     deterministic=True, verbose=True,
                     pretrained=True)
 
