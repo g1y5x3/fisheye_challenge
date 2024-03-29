@@ -58,6 +58,7 @@ def parse_args():
 if __name__ == '__main__':
   # TODO: passing configs with wandb.config
   args = parse_args()
+  print(args)
   cfg = Config.fromfile(args.config)
   torch.backends.cudnn.benchmark = True
   cfg.model.pretrained = None

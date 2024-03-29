@@ -196,6 +196,8 @@ class DCNv3_pytorch(nn.Module):
         x1 = input.permute(0, 3, 1, 2)
         x1 = self.dw_conv(x1)
         offset = self.offset(x1)
+        print(offset.shape)
+        print(offset)
         mask = self.mask(x1).reshape(N, H, W, self.group, -1)
         mask = F.softmax(mask, -1).reshape(N, H, W, -1)
 
@@ -328,6 +330,8 @@ class DCNv3(nn.Module):
         x1 = input.permute(0, 3, 1, 2)
         x1 = self.dw_conv(x1)
         offset = self.offset(x1)
+        print(offset.shape)
+        print(offset)
         mask = self.mask(x1).reshape(N, H, W, self.group, -1)
         
         if not self.use_dcn_v4_op:
