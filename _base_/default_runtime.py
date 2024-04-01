@@ -4,7 +4,13 @@ log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='TensorboardLoggerHook')
+        dict(type='MMDetWandbHook',
+             init_kwargs={'project': 'internimage', 'entity': 'fisheye'},
+             interval=50,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             num_eval_images=100,
+             bbox_score_thr=0.3)
     ])
 # yapf:enable
 custom_hooks = [dict(type='NumClassCheckHook')]

@@ -1,3 +1,9 @@
+# --------------------------------------------------------
+# InternImage
+# Copyright (c) 2022 OpenGVLab
+# Licensed under The MIT License [see LICENSE for details]
+# --------------------------------------------------------
+
 import argparse
 import copy
 import os
@@ -7,9 +13,9 @@ import warnings
 
 import mmcv
 import torch
-import torch.distributed as dist
+#import torch.distributed as dist
 from mmcv import Config, DictAction
-from mmcv.runner import get_dist_info, init_dist
+#from mmcv.runner import get_dist_info, init_dist
 from mmcv.utils import get_git_hash
 
 from mmdet import __version__
@@ -162,14 +168,14 @@ def main():
         cfg.gpu_ids = [args.gpu_id]
 
     # init distributed env first, since logger depends on the dist info.
-    if args.launcher == 'none':
-        distributed = False
-    else:
-        distributed = True
-        init_dist(args.launcher, **cfg.dist_params)
-        # re-set gpu_ids with distributed training mode
-        _, world_size = get_dist_info()
-        cfg.gpu_ids = range(world_size)
+    #if args.launcher == 'none':
+    #    distributed = False
+    #else:
+    #    distributed = True
+    #    init_dist(args.launcher, **cfg.dist_params)
+    #    # re-set gpu_ids with distributed training mode
+    #    _, world_size = get_dist_info()
+    #    cfg.gpu_ids = range(world_size)
 
     # create work_dir
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
@@ -192,7 +198,7 @@ def main():
     meta['env_info'] = env_info
     meta['config'] = cfg.pretty_text
     # log some basic info
-    logger.info(f'Distributed training: {distributed}')
+    #logger.info(f'Distributed training: {distributed}')
     logger.info(f'Config:\n{cfg.pretty_text}')
 
     cfg.device = get_device()
@@ -206,9 +212,7 @@ def main():
     meta['seed'] = seed
     meta['exp_name'] = osp.basename(args.config)
 
-    model = build_detector(cfg.model,
-                           train_cfg=cfg.get('train_cfg'),
-                           test_cfg=cfg.get('test_cfg'))
+    model = build_detector(cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
     model.init_weights()
 
     datasets = [build_dataset(cfg.data.train)]
@@ -222,16 +226,19 @@ def main():
         cfg.checkpoint_config.meta = dict(mmdet_version=__version__ +
                                           get_git_hash()[:7],
                                           CLASSES=datasets[0].CLASSES)
+
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
 
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
+    print(cfg)
+
     train_detector(model,
                    datasets,
                    cfg,
-                   distributed=distributed,
+                   distributed=False,
                    validate=(not args.no_validate),
                    timestamp=timestamp,
                    meta=meta)
