@@ -4,7 +4,7 @@ _base_ = [
 ]
 model = dict(
     type='DeformableDETR',
-        backbone=dict(
+    backbone=dict(
         type='ResNeXt',
         depth=101,
         groups=64,
@@ -14,10 +14,10 @@ model = dict(
         frozen_stages=1,
         norm_cfg=dict(type='BN', requires_grad=True),
         style='pytorch',
-        init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://resnext101_64x4d')))
+        init_cfg=dict(type='Pretrained', checkpoint='open-mmlab://resnext101_64x4d')),
     neck=dict(
         type='ChannelMapper',
-        in_channels=[512, 1024, 2048],
+        in_channels=[256, 512, 1024, 2048],
         kernel_size=1,
         out_channels=256,
         act_cfg=None,
@@ -26,7 +26,7 @@ model = dict(
     bbox_head=dict(
         type='DeformableDETRHead',
         num_query=300,
-        num_classes=80,
+        num_classes=5,
         in_channels=2048,
         sync_cls_avg_factor=True,
         as_two_stage=False,
@@ -86,57 +86,44 @@ model = dict(
 
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-# train_pipeline, NOTE the img_scale and the Pad's size_divisor is different
-# from the default setting in mmdet.
 train_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='RandomFlip', flip_ratio=0.5),
-    dict(
-        type='AutoAugment',
-        policies=[
-            [
-                dict(
-                    type='Resize',
-                    img_scale=[(480, 1333), (512, 1333), (544, 1333),
-                               (576, 1333), (608, 1333), (640, 1333),
-                               (672, 1333), (704, 1333), (736, 1333),
-                               (768, 1333), (800, 1333)],
-                    multiscale_mode='value',
-                    keep_ratio=True)
-            ],
-            [
-                dict(
-                    type='Resize',
-                    # The radio of all image in train dataset < 7
-                    # follow the original impl
-                    img_scale=[(400, 4200), (500, 4200), (600, 4200)],
-                    multiscale_mode='value',
-                    keep_ratio=True),
-                dict(
-                    type='RandomCrop',
-                    crop_type='absolute_range',
-                    crop_size=(384, 600),
-                    allow_negative_crop=True),
-                dict(
-                    type='Resize',
-                    img_scale=[(480, 1333), (512, 1333), (544, 1333),
-                               (576, 1333), (608, 1333), (640, 1333),
-                               (672, 1333), (704, 1333), (736, 1333),
-                               (768, 1333), (800, 1333)],
-                    multiscale_mode='value',
-                    override=True,
-                    keep_ratio=True)
-            ]
-        ]),
-    dict(type='Normalize', **img_norm_cfg),
-    dict(type='Pad', size_divisor=1),
-    dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
+  dict(type='LoadImageFromFile'),
+  dict(type='LoadAnnotations', with_bbox=True, with_mask=False),
+  dict(type='RandomFlip', flip_ratio=0.5),
+  dict(type='AutoAugment',
+    policies=[
+      [
+        dict(type='Resize',
+          img_scale=[(480, 1333), (512, 1333), (544, 1333), (576, 1333),
+                     (608, 1333), (640, 1333), (672, 1333), (704, 1333),
+                     (736, 1333), (768, 1333), (800, 1333)],
+          multiscale_mode='value',
+          keep_ratio=True)
+      ],
+      [
+        dict(type='Resize',
+          img_scale=[(400, 1333), (500, 1333), (600, 1333)],
+          multiscale_mode='value',
+          keep_ratio=True),
+        dict(type='RandomCrop',
+          crop_type='absolute_range',
+          crop_size=(384, 600),
+          allow_negative_crop=True),
+        dict(type='Resize',
+          img_scale=[(480, 1333), (512, 1333), (544, 1333),
+                     (576, 1333), (608, 1333), (640, 1333),
+                     (672, 1333), (704, 1333), (736, 1333),
+                     (768, 1333), (800, 1333)],
+          multiscale_mode='value',
+          override=True,
+          keep_ratio=True)
+      ]
+    ]),
+  dict(type='Normalize', **img_norm_cfg),
+  dict(type='Pad', size_divisor=32),
+  dict(type='DefaultFormatBundle'),
+  dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
-# test_pipeline, NOTE the Pad's size_divisor is different from the default
-# setting (size_divisor=32). While there is little effect on the performance
-# whether we use the default setting or use size_divisor=1.
 test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
@@ -147,9 +134,9 @@ test_pipeline = [
             dict(type='Resize', keep_ratio=True),
             dict(type='RandomFlip'),
             dict(type='Normalize', **img_norm_cfg),
-            dict(type='Pad', size_divisor=1),
-            dict(type='ImageToTensor', keys=['img']),
-            dict(type='Collect', keys=['img'])
+            dict(type='Pad', size_divisor=32),
+            dict(type='DefaultFormatBundle'),
+            dict(type='Collect', keys=['img']),
         ])
 ]
 data = dict(
@@ -158,6 +145,7 @@ data = dict(
     train=dict(filter_empty_gt=False, pipeline=train_pipeline),
     val=dict(pipeline=test_pipeline),
     test=dict(pipeline=test_pipeline))
+
 # optimizer
 optimizer = dict(
     type='AdamW',
@@ -178,3 +166,16 @@ runner = dict(type='EpochBasedRunner', max_epochs=50)
 # USER SHOULD NOT CHANGE ITS VALUES.
 # base_batch_size = (16 GPUs) x (2 samples per GPU)
 auto_scale_lr = dict(base_batch_size=32)
+log_config = dict(
+    interval=50,
+    hooks=[
+        dict(type='TextLoggerHook'),
+        dict(type='MMDetWandbHook',
+             init_kwargs={'project': 'fisheye-challenge', 'entity': 'g1y5x3', 'name': 'resnet101-detr-baseline'},
+             interval=50,
+             log_checkpoint=True,
+             log_checkpoint_metadata=True,
+             num_eval_images=100,
+             bbox_score_thr=0.3)
+    ]
+)
