@@ -133,7 +133,7 @@ train_pipeline = [
   dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
 # we use 4 nodes to train this model, with a total batch size of 64
-data = dict(samples_per_gpu=16, train=dict(pipeline=train_pipeline))
+data = dict(samples_per_gpu=2, train=dict(pipeline=train_pipeline))
 # optimizer
 optimizer = dict(
   _delete_=True, type='AdamW', lr=0.0001 * 2, weight_decay=0.05,
